@@ -9,8 +9,7 @@ To evaluate the software immediately without downloading the source code or inst
 
 # Login password
 
-**Username**: user
-**Password**: 1234
+**Username**: user           **Password**: 1234
 
 **Instructions:**
 1. Download the setup executable from the Google Drive link above.
