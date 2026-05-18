@@ -1,0 +1,37 @@
+NSC_Medical_Suite_Project/
+│
+├── Source Code (Python)
+│   ├── main.py          # Application bootstrapper, threading, and camera feed controller.
+│   ├── ui.py            # High-performance Tkinter GUI, dashboard rendering, and CSV report export.
+│   ├── logic.py         # 3D spatial math, clinical 2-for-2 adaptive difficulty, and XAI scoring.
+│   ├── vision.py        # MediaPipe integration, kinematic stabilisation, and OpenCV skeleton rendering.
+│   ├── tutorial.py      # Automated video player with Pygame audio sync and MoviePy extraction.
+│   ├── chatbot.py       # Gemini-powered text assistant for clinical insights.
+│   ├── audio.py         # PyGame audio engine with hardware-conflict protections.
+│   ├── login.py         # Authentication system and local user credential management.
+│   ├── utils.py         # Single-instance guards, environment variables, and pathing utilities.
+│   └── jarvis.py        # (Deprecated/Archived) Experimental voice assistant module. (Still not used)
+│
+├── assets/           # Static media, UI resources, and AI models
+│   ├── hand_landmarker.task  # Pre-trained MediaPipe hand tracking AI model.
+│   ├── Rehab.ico        # Official application and installer desktop icon.
+│   ├── tutorial.mp4     # Expert video guide for the interactive tutorial interface.
+│   ├── main_music.mp3   # Looping background therapy music.
+│   ├── ding.wav         # SFX: Repetition success indicator.
+│   ├── reach_daily_limit.wav # SFX: Daily goal celebration.
+│   ├── btn_menu.wav     # SFX: General UI interaction.
+│   └── exit_reset_btn.wav    # SFX: Cancel/Reset action.
+│
+├── Deployment & Build
+│   ├── builder.iss      # Inno Setup configuration and compiler script.
+│   ├── main.dist/    # Nuitka standalone build folder (contains compiled main.exe & C-DLLs).
+│   └── Installer/    # Final output directory from Inno Setup compilation.
+│       └── NSCMedicalSuite_Setup.exe  # Standalone Windows installer for presentation deployment.
+│
+└── Runtime Data (Generated in ~\Documents\NSC Medical Suite\)
+    ├── rehab_progress.json   # Local tracking of patient therapy sets and movement accuracy.
+    ├── users.json            # Local database of registered user profiles.
+    ├── active_session.json   # Auth token for "Remember Me" auto-login functionality.
+    ├── user_settings.json    # Persisted preferences for volume and application language (TH/EN).
+    └── NSC_Clinical_Report_[Date].csv # Dynamically generated clinical data export for physicians.
+
