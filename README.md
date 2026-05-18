@@ -7,9 +7,9 @@ To evaluate the software immediately without downloading the source code or inst
 
 **Download Launcher:** (https://drive.google.com/file/d/13cJJREbfQCYJE9hNPWmiwMs3Mf_yrDKz/view?usp=sharing)
 
-#Login password*
-**Username: user**
-**Password: 1234**
+#Login password
+**Username**: user
+**Password**: 1234
 
 **Instructions:**
 1. Download the setup executable from the Google Drive link above.
