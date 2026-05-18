@@ -6,9 +6,11 @@
 To evaluate the software immediately without downloading the source code or installing Python libraries, please download our compiled launcher. 
 
 **Download Launcher:** (https://drive.google.com/file/d/13cJJREbfQCYJE9hNPWmiwMs3Mf_yrDKz/view?usp=sharing)
-#**Login password** 
+
+#Login password*
 **Username: user**
 **Password: 1234**
+
 **Instructions:**
 1. Download the setup executable from the Google Drive link above.
 2. Run the installer and follow the standard setup prompts.
