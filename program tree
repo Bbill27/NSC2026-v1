@@ -10,7 +10,6 @@ NSC_Medical_Suite_Project/
 │   ├── audio.py         # PyGame audio engine with hardware-conflict protections.
 │   ├── login.py         # Authentication system and local user credential management.
 │   ├── utils.py         # Single-instance guards, environment variables, and pathing utilities.
-│   └── jarvis.py        # (Deprecated/Archived) Experimental voice assistant module. (Still not used)
 │
 ├── assets/           # Static media, UI resources, and AI models
 │   ├── hand_landmarker.task  # Pre-trained MediaPipe hand tracking AI model.
