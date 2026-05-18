@@ -10,7 +10,6 @@ To evaluate the software immediately without downloading the source code or inst
 # Login password
 
 **Username**: user
-
 **Password**: 1234
 
 **Instructions:**
