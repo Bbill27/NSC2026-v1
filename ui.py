@@ -35,7 +35,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Local Application Modules
 import audio
-from chatbot import ClinicalChatbot
 from utils import _ensure_cv2, _ensure_np, resource_path
 from logic import generate_clinical_insights, evaluate_adaptive_difficulty
 
@@ -93,23 +92,14 @@ LANG = {
         "coach_spread_more": "Spread fingers wider",
         "coach_hold_steady": "Hold position steady",
         "coach_well_done": "Excellent movement!",
-        "coach_two_fingers": "Raise index + middle only",
-        "coach_pinch_tighter": "Pinch thumb and index together",
-        "coach_tremor_detected": "Tremor detected — rest briefly",
         "guide_box": "Place hand here",
-        "ex_1": "1. Open/Close", "ex_2": "2. Thumb", "ex_3": "3. Starfish",
-        "ex_4": "4. Wrist", "ex_5": "5. O-Ring", "ex_6": "6. V-Sign",
+        "ex_1": "1. Open/Close", "ex_2": "2. Thumb", "ex_3": "3. Wiper",
+        "ex_4": "4. Flip", "ex_5": "5. L-Shape", "ex_6": "6. Scissor",
+        "ex_7": "7. Claw", "ex_8": "8. Wrist", "ex_9": "9. Piano", "ex_10": "10. Hitch",
         "move_closer": "NO HAND: MOVE CLOSER",
         "set": "Set", "rep": "Rep", "daily_goal": "Goal Met!",
         "hud_reset": "RESET [R]",
         "hud_menu": "LEAVE [M]",
-        "inst_sq_1": "1. Make Fist", "inst_sq_2": "2. Open Hand",
-        "inst_th": "Touch",
-        "thumb_names": ["INDEX", "MIDDLE", "RING", "PINKY"],
-        "inst_st_1": "1. Relax Hand", "inst_st_2": "2. Spread Fingers",
-        "inst_fl_1": "1. Palm Up", "inst_fl_2": "2. Palm Down",
-        "inst_or_1": "1. Relax", "inst_or_2": "2. Air Grasp",
-        "inst_pe_1": "1. Make Fist", "inst_pe_2": "2. V-Sign",
         "acc_title": "Accuracy:", "acc_excel": "EXCELLENT", "acc_good": "GOOD", "acc_needs": "NEEDS WORK",
         "session_complete": "SESSION COMPLETE",
         "total_ex": "Total Exercises:",
@@ -118,16 +108,31 @@ LANG = {
         "role_2": "Software Developer", "name_2": "Pannawat Khoonton",
         "role_3": "Video Editor",       "name_3": "Phuwasit Khorsermsri",
         "role_4": "Report",             "name_4": "Phuwasit Khorsermsri",
-        "btn_ai_chat": "AI CLINICAL ASSISTANT",
-        "lbl_login_title": "User Login",
-        "lbl_username": "Username",
-        "lbl_password": "Password",
-        "lbl_remember": "Remember me",
-        "lbl_forgot": "Forgot Password?",
-        "btn_login": "LOGIN",
-        "err_login": "Invalid username or password",
-        "btn_logout": "LOG OUT",
-    },
+        "lbl_login_title": "User Login", "lbl_username": "Username", "lbl_password": "Password",
+        "lbl_remember": "Remember me", "lbl_forgot": "Forgot Password?", "btn_login": "LOGIN",
+        "err_login": "Invalid credentials", "btn_logout": "LOG OUT",
+        "coach_lift_finger": "Lift that finger higher",
+        "coach_thumb_up":    "Extend your thumb fully",
+        "inst_sq_1": "Make Fist",
+        "inst_sq_2": "Open Hand",
+        "inst_th":   "Touch",
+        "inst_wp_1": "Wipe Left",
+        "inst_wp_2": "Wipe Right",
+        "inst_fl_1": "Palm Up",
+        "inst_fl_2": "Palm Down",
+        "inst_st_1": "Hand Flat",
+        "inst_st_2": "Spread Fingers",
+        "inst_sc_1": "Close Fingers",
+        "inst_sc_2": "Spread Fingers",
+        "inst_hk_1": "Hand Flat",
+        "inst_hk_2": "Make Claw",
+        "inst_wb_1": "Wrist Up",
+        "inst_wb_2": "Wrist Down",
+        "inst_pn":   "Lift",
+        "inst_hc_1": "Make Fist",
+        "inst_hc_2": "Thumb Out",
+        "thumb_names": ["INDEX", "MIDDLE", "RING", "PINKY"],
+        },
     "TH": {
         "title": "ชุดโปรแกรมการแพทย์ NSC",
         "subtitle": "ระบบฟื้นฟูสมรรถภาพทางการแพทย์",
@@ -162,23 +167,14 @@ LANG = {
         "coach_spread_more": "กางนิ้วออกให้กว้างกว่านี้",
         "coach_hold_steady": "ค้างท่าให้นิ่ง",
         "coach_well_done": "การเคลื่อนไหวดีเยี่ยม!",
-        "coach_two_fingers": "ชูแค่นิ้วชี้และนิ้วกลาง",
-        "coach_pinch_tighter": "จีบนิ้วโป้งกับนิ้วชี้ให้แน่นขึ้น",
-        "coach_tremor_detected": "พบการสั่น — พักสักครู่",
         "guide_box": "วางมือที่นี่",
-        "ex_1": "1. กำมือ/แบมือ", "ex_2": "2. แตะนิ้วโป้ง", "ex_3": "3. ปลาดาว",
-        "ex_4": "4. หมุนข้อมือ", "ex_5": "5. จีบนิ้ว", "ex_6": "6. ชูสองนิ้ว",
+        "ex_1": "1. กำ/แบมือ", "ex_2": "2. แตะนิ้วโป้ง", "ex_3": "3. โบกมือ",
+        "ex_4": "4. หงาย/คว่ำ", "ex_5": "5. ทำตัว L", "ex_6": "6. กางนิ้ว",
+        "ex_7": "7. ทำตะขอ", "ex_8": "8. พับข้อมือ", "ex_9": "9. พรมนิ้ว", "ex_10": "10. ชูนิ้วโป้ง",
         "move_closer": "ไม่พบมือ: กรุณาขยับเข้ามาใกล้",
         "set": "เซ็ต", "rep": "ครั้ง", "daily_goal": "สำเร็จเป้าหมาย!",
         "hud_reset": "Reset [R]",
         "hud_menu": "ออก [M]",
-        "inst_sq_1": "1. กำมือ", "inst_sq_2": "2. แบมือ",
-        "inst_th": "แตะนิ้ว",
-        "thumb_names": ["ชี้", "กลาง", "นาง", "ก้อย"],
-        "inst_st_1": "1. พักมือ", "inst_st_2": "2. กางนิ้วออก",
-        "inst_fl_1": "1. หงายมือ", "inst_fl_2": "2. คว่ำมือ",
-        "inst_or_1": "1. พักมือ", "inst_or_2": "2. จีบนิ้ว",
-        "inst_pe_1": "1. กำมือ", "inst_pe_2": "2. ชูสองนิ้ว",
         "acc_title": "ความแม่นยำ:", "acc_excel": "ดีเยี่ยม", "acc_good": "ดี", "acc_needs": "พยายามอีกนิด",
         "session_complete": "สรุปผลการบำบัด",
         "total_ex": "จำนวนท่าที่ฝึก:",
@@ -187,15 +183,11 @@ LANG = {
         "role_2": "พัฒนาซอฟต์แวร์",  "name_2": "ปัณณวัฒน์ ขุนทน",
         "role_3": "ตัดต่อวิดีโอ",     "name_3": "ภูวศิษฎ์ ขอเสริมศรี",
         "role_4": "จัดทำรายงาน",      "name_4": "ภูวศิษฎ์ ขอเสริมศรี",
-        "btn_ai_chat": "ผู้ช่วยอัจฉริยะ AI",
-        "lbl_login_title": "เข้าสู่ระบบ",
-        "lbl_username": "ชื่อผู้ใช้งาน",
-        "lbl_password": "รหัสผ่าน",
-        "lbl_remember": "จดจำการเข้าระบบ",
-        "lbl_forgot": "ลืมรหัสผ่าน?",
-        "btn_login": "เข้าสู่ระบบ",
-        "err_login": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
-        "btn_logout": "ออกจากระบบ",
+        "lbl_login_title": "เข้าสู่ระบบ", "lbl_username": "ชื่อผู้ใช้งาน", "lbl_password": "รหัสผ่าน",
+        "lbl_remember": "จดจำการเข้าระบบ", "lbl_forgot": "ลืมรหัสผ่าน?", "btn_login": "เข้าสู่ระบบ",
+        "err_login": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "btn_logout": "ออกจากระบบ",
+        "coach_lift_finger": "ยกนิ้วนั้นขึ้นให้สูงกว่านี้",
+        "coach_thumb_up":    "เหยียดนิ้วโป้งออกให้สุด",
     },
 }
 
@@ -254,25 +246,30 @@ def _draw_centered_text(draw_obj, cx, cy, text, font_obj, fill_color, font_key="
         tx, ty = cx - w / 2 - bb[0], cy - h / 2 - bb[1]
     draw_obj.text((tx, ty), text, font=font_obj, fill=fill_color)
 
+
 def _get_ui_text_cached(app) -> dict:
     """Caches UI generation to prevent redundant string rebuilding every frame."""
     ex = app.current_exercise
+
+    # Safely get reps and sets from the new dictionary system
+    current_reps = app.reps_data.get(ex, 0) if hasattr(app, 'reps_data') else 0
+    current_sets = app.sets_data.get(ex, 0) if hasattr(app, 'sets_data') else 0
+
     state = (
         ex,
-        getattr(app, 'sq_state', ''), getattr(app, 'star_state', ''),
-        getattr(app, 'flip_state', ''), getattr(app, 'oring_state', ''),
-        getattr(app, 'peace_state', ''), getattr(app, 'curr_thumb_idx', 0),
-        getattr(app, 'sq_reps', 0), getattr(app, 'sq_sets', 0),
-        getattr(app, 'thumb_reps', 0), getattr(app, 'thumb_sets', 0),
-        getattr(app, 'star_reps', 0), getattr(app, 'star_sets', 0),
-        getattr(app, 'flip_reps', 0), getattr(app, 'flip_sets', 0),
-        getattr(app, 'oring_reps', 0), getattr(app, 'oring_sets', 0),
-        getattr(app, 'peace_reps', 0), getattr(app, 'peace_sets', 0),
+        # Track all 10 new exercise states
+        getattr(app, 'sq_state', ''), getattr(app, 'table_state', ''),
+        getattr(app, 'flip_state', ''), getattr(app, 'wiper_state', ''),
+        getattr(app, 'scissor_state', ''), getattr(app, 'hook_state', ''),
+        getattr(app, 'wrist_state', ''), getattr(app, 'hitch_state', ''),
+        getattr(app, 'curr_thumb_idx', 0), getattr(app, 'curr_piano_idx', 0),
+        # Track the actual reps and sets for the current exercise
+        current_reps, current_sets,
         getattr(app, 'current_lang', 'EN'),
     )
     global _UI_TEXT_STATE, _UI_TEXT_RESULT
     if state != _UI_TEXT_STATE:
-        _UI_TEXT_STATE  = state
+        _UI_TEXT_STATE = state
         _UI_TEXT_RESULT = app._get_current_ui_text()
     return _UI_TEXT_RESULT
 
@@ -597,24 +594,6 @@ def init_tkinter_ui(app):
     app.btn_cred = _make_secondary_btn(btn_container, t["btn_credits"], app.show_credits, btn_font)
     app.btn_cred.pack(pady=4)
 
-    app.chatbot_frame = ClinicalChatbot(app.root, app)
-
-    def open_chatbot():
-        try:
-            audio.play_menu_click_sound()
-        except Exception:
-            pass
-        app.menu_frame.place_forget()
-        app.chatbot_frame.place(x=0, y=0, relwidth=1, relheight=1)
-        app.chatbot_frame.lift()
-
-    app.btn_ai_chat = tk.Button(btn_container, text=t["btn_ai_chat"], font=btn_font, bg=SURFACE_COLOR, fg=ACCENT_COLOR,
-                                relief="flat", borderwidth=0, width=28, pady=11, cursor="hand2", command=open_chatbot,
-                                activebackground=SURFACE_ALT, activeforeground=ACCENT_COLOR)
-    app.btn_ai_chat.bind("<Enter>", lambda e: app.btn_ai_chat.config(bg=SURFACE_ALT))
-    app.btn_ai_chat.bind("<Leave>", lambda e: app.btn_ai_chat.config(bg=SURFACE_COLOR))
-    app.btn_ai_chat.pack(pady=(12, 4))
-
     # ── 8.4 Settings Frame ──────────────────────────────────────
     app.settings_frame = tk.Frame(app.root, bg=BG_COLOR, width=app.render_w, height=app.render_h)
     app.settings_frame.pack_propagate(False)
@@ -718,14 +697,16 @@ def init_tkinter_ui(app):
             filetypes=[("CSV Document", "*.csv")],
             title="Save Doctor Report"
         )
+
         if not doc_path:
             return
 
         # 2. Define layout and map to exact JSON variables
-        exercises = ["SQUEEZE", "THUMB", "STARFISH", "FLIP", "O_RING", "PEACE"]
+        exercises = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
         prefix_map = {
-            "SQUEEZE": "sq", "THUMB": "thumb", "STARFISH": "star",
-            "FLIP": "flip", "O_RING": "oring", "PEACE": "peace"
+            "SQUEEZE": "squeeze", "THUMB": "thumb", "WIPER": "wiper",
+            "FLIP": "flip", "TABLETOP": "tabletop", "SCISSOR": "scissor",
+            "HOOK": "hook", "WRIST": "wrist", "PIANO": "piano", "HITCH": "hitch"
         }
 
         try:
@@ -744,7 +725,7 @@ def init_tkinter_ui(app):
 
                 # 4. Write every day of history into the CSV
                 if history:
-                    for date_key in sorted(history.keys()):
+                    for date_key in sorted(history.keys(), reverse=True):
                         day_data = history[date_key]
                         formatted_date = f"{date_key[8:10]}/{date_key[5:7]}/{date_key[0:4]}"
                         row_data = [formatted_date]
@@ -752,14 +733,52 @@ def init_tkinter_ui(app):
                         for ex in exercises:
                             prefix = prefix_map[ex]
 
-                            # Pulls exact reps from JSON (e.g., "sq_reps", "oring_reps")
-                            reps = day_data.get(f"{prefix}_reps", 0)
-                            row_data.append(reps)
+                            # Extract sets and accuracy
+                            sets = day_data.get(f"{prefix}_sets", 0)
+                            acc = day_data.get(f"{prefix}_acc", 0)
+
+                            # Calculate the AI's Adaptive Target for that specific day
+                            base_targets = {"squeeze": 3, "thumb": 3, "wiper": 3, "flip": 3, "tabletop": 3,
+                                            "scissor": 4, "hook": 3, "wrist": 3, "piano": 3, "hitch": 3}
+                            target = base_targets.get(prefix, 3)
+
+                            past_dates = sorted([pd for pd in history.keys() if pd < date_key])
+                            consec_good = 0
+                            consec_poor = 0
+
+                            for pd in past_dates:
+                                p_sets = history[pd].get(f"{prefix}_sets", 0)
+                                p_acc = history[pd].get(f"{prefix}_acc", 0)
+
+                                if p_sets == 0:
+                                    consec_good = 0;
+                                    consec_poor = 0
+                                    continue
+
+                                if p_sets >= target and p_acc >= 80:
+                                    consec_good += 1;
+                                    consec_poor = 0
+                                elif p_sets < target or p_acc < 50:
+                                    consec_poor += 1;
+                                    consec_good = 0
+                                else:
+                                    consec_good = 0;
+                                    consec_poor = 0
+
+                                if consec_good >= 2: target = min(8, target + 1); consec_good = 0
+                                if consec_poor >= 2: target = max(1, target - 1); consec_poor = 0
+
+                            # Format identically to the UI: "Sets/Target (Accuracy%)"
+                            display_acc = acc if sets > 0 else 0
+                            cell_text = f"{sets}/{target} ({display_acc}%)"
+                            row_data.append(cell_text)
 
                         writer.writerow(row_data)
                 else:
-                    # Failsafe: If no history exists, write a blank row so the file isn't empty
-                    writer.writerow([datetime.now().strftime("%Y-%m-%d"), 0, 0, 0, 0, 0, 0])
+                    # Failsafe: 1 date + 10 empty strings formatted properly
+                    writer.writerow([datetime.now().strftime("%d/%m/%Y"),
+                                     "0/3 (0%)", "0/3 (0%)", "0/3 (0%)", "0/3 (0%)", "0/3 (0%)",
+                                     "0/4 (0%)", "0/3 (0%)", "0/3 (0%)", "0/3 (0%)", "0/3 (0%)"])
 
             print(f"[SYSTEM] Formal clinical CSV report generated: {doc_path}")
 
@@ -776,7 +795,11 @@ def init_tkinter_ui(app):
             if hasattr(app, 'jarvis') and getattr(app.jarvis, 'is_active', False):
                 app.jarvis.speak("ขออภัยครับ เกิดข้อผิดพลาดในการบันทึกข้อมูล")
 
-    app.btn_export = tk.Button(dash_topbar, font=small_font, bg=SURFACE_ALT, fg=TEXT_COLOR, relief="flat", borderwidth=0, padx=14, pady=7, cursor="hand2", command=export_report, activebackground=ACCENT_DIM, activeforeground=BG_COLOR)
+    # One single button. Exactly as it was.
+    app.btn_export = tk.Button(dash_topbar, text=LANG[app.current_lang].get("btn_export", "Export"), font=small_font,
+                               bg=SURFACE_ALT, fg=TEXT_COLOR, relief="flat", borderwidth=0, padx=14, pady=7,
+                               cursor="hand2", command=export_report, activebackground=ACCENT_DIM,
+                               activeforeground=BG_COLOR)
     app.btn_export.pack(side="right")
     title_row = tk.Frame(app.dashboard_frame, bg=BG_COLOR)
     title_row.pack(fill="x", padx=40, pady=(16, 0))
@@ -869,12 +892,16 @@ def _add_progress_chart(app, parent, history):
     labels = [(today - timedelta(days=i)).strftime("%d/%m")    for i in range(6, -1, -1)]
 
     exercise_keys = [
-        ("sq_sets",    "#00d4aa", t.get("ex_1", "1")),
+        ("squeeze_sets", "#00d4aa", t.get("ex_1", "1")),
         ("thumb_sets", "#f59e0b", t.get("ex_2", "2")),
-        ("star_sets",  "#3b82f6", t.get("ex_3", "3")),
-        ("flip_sets",  "#8b5cf6", t.get("ex_4", "4")),
-        ("oring_sets", "#ec4899", t.get("ex_5", "5")),
-        ("peace_sets", "#ef4444", t.get("ex_6", "6")),
+        ("wiper_sets", "#3b82f6", t.get("ex_3", "3")),
+        ("flip_sets", "#8b5cf6", t.get("ex_4", "4")),
+        ("tabletop_sets", "#ec4899", t.get("ex_5", "5")),
+        ("scissor_sets", "#ef4444", t.get("ex_6", "6")),
+        ("hook_sets", "#14b8a6", t.get("ex_7", "7")),
+        ("wrist_sets", "#f43f5e", t.get("ex_8", "8")),
+        ("piano_sets", "#84cc16", t.get("ex_9", "9")),
+        ("hitch_sets", "#d946ef", t.get("ex_10", "10")),
     ]
 
     fig, ax = plt.subplots(figsize=(9, 3.6), facecolor=BG_COLOR)
@@ -940,29 +967,32 @@ def populate_dashboard(app):
     style.configure("Treeview.Heading", background=SURFACE_ALT, foreground=ACCENT_COLOR, font=("Leelawadee UI", 10, "bold"), borderwidth=0, relief="flat")
     style.map("Treeview", background=[("selected", ACCENT_DIM)], foreground=[("selected", BG_COLOR)])
 
-    cols = ("Date", "Squeeze", "Thumb", "Starfish", "Wrist", "O-Ring", "Peace")
+    # <--- FIXED COLUMN HEADER TO "5.Tb" --->
+    cols = ("Date", "1.Sq", "2.Th", "3.Wp", "4.Fl", "5.Tb", "6.Sc", "7.Hk", "8.Wr", "9.Pn", "10.Ht")
     tree = ttk.Treeview(tree_frame, columns=cols, show="headings", height=5)
     sb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=sb.set)
 
     for c in cols:
         tree.heading(c, text=c)
-        tree.column(c, anchor="center", width=110 if c == "Date" else 108)
-    tree.pack(side="left", fill="x", expand=True); sb.pack(side="right", fill="y")
+        tree.column(c, anchor="center", width=85 if c == "Date" else 75)
+    tree.pack(side="left", fill="x", expand=True);
+    sb.pack(side="right", fill="y")
 
     def fmt_cell(sets, goal, acc):
         display_acc = acc if sets > 0 else 0
-        # Forces the UI to ALWAYS show sets/goal (e.g., 7/3)
         return f"{sets}/{goal} ({display_acc}%)"
 
+    # <--- FIXED DICTIONARY KEYS --->
+        # <--- FIXED DICTIONARY KEYS --->
     ex_keys = [
-        ("sq", "sq_sets", "sq_acc"), ("thumb", "thumb_sets", "thumb_acc"),
-        ("star", "star_sets", "star_acc"), ("flip", "flip_sets", "flip_acc"),
-        ("oring", "oring_sets", "oring_acc"), ("peace", "peace_sets", "peace_acc"),
-    ]
+            ("squeeze", "squeeze_sets", "squeeze_acc"), ("thumb", "thumb_sets", "thumb_acc"),
+            ("wiper", "wiper_sets", "wiper_acc"), ("flip", "flip_sets", "flip_acc"),
+            ("tabletop", "tabletop_sets", "tabletop_acc"), ("scissor", "scissor_sets", "scissor_acc"),
+            ("hook", "hook_sets", "hook_acc"), ("wrist", "wrist_sets", "wrist_acc"),
+            ("piano", "piano_sets", "piano_acc"), ("hitch", "hitch_sets", "hitch_acc")
+        ]
     sorted_dates = sorted(history.keys(), reverse=True)
-
-    from datetime import datetime, timedelta
 
     for d in sorted_dates:
         v = history[d]
@@ -970,13 +1000,9 @@ def populate_dashboard(app):
 
         for prefix, set_key, acc_key in ex_keys:
             sets, acc = v.get(set_key, 0), v.get(acc_key, 0)
-
-            # Pulls your base targets
-            base_targets = {"sq": 3, "thumb": 3, "star": 3, "flip": 3, "oring": 4, "peace": 4}
+            base_targets = {"squeeze": 3, "thumb": 3, "wiper": 3, "flip": 3, "tabletop": 3, "scissor": 4, "hook": 3, "wrist": 3, "piano": 3, "hitch": 3}
             target = base_targets.get(prefix, 3)
 
-            # --- THE CLINICAL TIME-TRAVEL FIX ---
-            # Scan ALL dates before this row so the AI remembers if they leveled up weeks ago
             past_dates = sorted([pd for pd in history.keys() if pd < d])
             consec_good = 0
             consec_poor = 0
@@ -986,34 +1012,22 @@ def populate_dashboard(app):
                 p_acc = history[pd].get(acc_key, 0)
 
                 if p_sets == 0:
-                    consec_good = 0
-                    consec_poor = 0
-                    continue
+                    consec_good = 0; consec_poor = 0; continue
 
-                # Clinical Rule: Exceeded goal with >=80% accuracy
                 if p_sets >= target and p_acc >= 80:
-                    consec_good += 1
-                    consec_poor = 0
-                # Clinical Rule: Failed goal OR <50% accuracy
+                    consec_good += 1; consec_poor = 0
                 elif p_sets < target or p_acc < 50:
-                    consec_poor += 1
-                    consec_good = 0
+                    consec_poor += 1; consec_good = 0
                 else:
-                    consec_good = 0
-                    consec_poor = 0
+                    consec_good = 0; consec_poor = 0
 
-                if consec_good >= 2:
-                    target = min(8, target + 1)
-                    consec_good = 0
-                if consec_poor >= 2:
-                    target = max(1, target - 1)
-                    consec_poor = 0
+                if consec_good >= 2: target = min(8, target + 1); consec_good = 0
+                if consec_poor >= 2: target = max(1, target - 1); consec_poor = 0
 
             row_values.append(fmt_cell(sets, target, acc))
 
         tree.insert("", "end", values=tuple(row_values))
 
-    # --- YOUR CHART REMAINS UNTOUCHED ---
     chart_wrapper = tk.Frame(app.dash_content, bg=BG_COLOR)
     chart_wrapper.pack(fill="both", expand=True)
     _add_progress_chart(app, chart_wrapper, history)
@@ -1111,7 +1125,7 @@ def _blend_rect(img_arr, np, x1, y1, x2, y2, fill_rgb, alpha=0.72):
 def recalc_ui_metrics(app):
     w, h = app.render_w, app.render_h
     app.ui = {
-        "btn_w": w // 6, "btn_h": max(60, h // 11),
+        "btn_w": w // 10, "btn_h": max(60, h // 11),  # <-- Changed // 6 to // 10
         "menu_w": 140, "menu_h": 45,
         "reset_w": 140, "reset_h": 45,
     }
@@ -1143,7 +1157,7 @@ def draw_dashboard(app, canvas):
     ui_data = _get_ui_text_cached(app)
     hand_visible = not (now - app.last_correct_time > 5.0)
 
-    exs = ["SQUEEZE", "THUMB", "STARFISH", "FLIP", "O_RING", "PEACE"]
+    exs = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
     try:
         active_idx = exs.index(app.current_exercise)
     except:
@@ -1158,7 +1172,7 @@ def draw_dashboard(app, canvas):
     _blend_rect(canvas, np, ax1, 4, ax2, top_h - 4, (0, 168, 130), alpha=0.90)
     canvas[top_h - 3:top_h, ax1:ax2] = (0, 212, 170)
 
-    for i in range(1, 6):
+    for i in range(1, 10):  # <-- Changed from 6 to 10
         sx = i * tab_w
         canvas[8:top_h - 8, sx:sx + 1] = (46, 63, 110)
 
@@ -1169,10 +1183,12 @@ def draw_dashboard(app, canvas):
     img_pil = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img_pil)
 
-    labels = [t["ex_1"], t["ex_2"], t["ex_3"], t["ex_4"], t["ex_5"], t["ex_6"]]
+    labels = [t.get(f"ex_{i + 1}", str(i + 1)) for i in range(10)]
     for i, text in enumerate(labels):
         color = (255, 255, 255) if i == active_idx else (130, 155, 195)
-        _draw_centered_text(draw, i * tab_w + tab_w / 2, top_h / 2, text, f_tab, color, f"tab_{i}")
+        # Abbreviate long names so they fit in the smaller tabs
+        if len(text) > 10: text = text[:8] + ".."
+        _draw_centered_text(draw, i * tab_w + tab_w / 2, top_h / 2, text, f_tiny, color, f"tab_{i}_{text}")
 
     if not hand_visible:
         gx1, gy1 = w // 4, top_h + 24
