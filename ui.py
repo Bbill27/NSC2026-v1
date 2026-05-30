@@ -1153,9 +1153,10 @@ def draw_dashboard(app, canvas):
     h = app.render_h
     t = LANG[app.current_lang]
     now = time.time()
-
     ui_data = _get_ui_text_cached(app)
-    hand_visible = not (now - app.last_correct_time > 5.0)
+
+    # Use the actual camera detection boolean from main.py instead of the broken 5-second timer
+    hand_visible = getattr(app, 'is_hand_visible', False)
 
     exs = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
     try:
@@ -1244,52 +1245,80 @@ def draw_dashboard(app, canvas):
         _draw_centered_text(draw, rx1 + u["reset_w"] / 2, ry1 + u["reset_h"] / 2, t["hud_reset"], f_small,
                             (255, 190, 120), "hud_reset")
 
-    accuracy = getattr(app, "current_accuracy", 0)
-    if hand_visible and accuracy > 0:
-        if accuracy >= 85:
-            qual_text, qual_color = t.get("acc_excel", "EXCELLENT"), (0, 212, 170)
-            badge_bg, badge_brd = (0, 40, 32), (0, 160, 130)
-        elif accuracy >= 60:
-            qual_text, qual_color = t.get("acc_good", "GOOD"), (245, 158, 11)
-            badge_bg, badge_brd = (40, 30, 0), (180, 120, 0)
-        else:
-            qual_text, qual_color = t.get("acc_needs", "NEEDS WORK"), (255, 100, 120)
-            badge_bg, badge_brd = (50, 10, 18), (200, 50, 80)
+        # ── 1. CHECK MEDICAL LOCKOUT STATUS ──
+    is_locked = hasattr(app, 'fatigue_detector') and app.fatigue_detector.is_locked
 
-        acc_line1 = f"{accuracy}%"
-        acc_line2 = qual_text
-        w1, h1 = _text_size(draw, acc_line1, f_large, f"acc_pct_{accuracy}")
-        w2, h2 = _text_size(draw, acc_line2, f_tiny, f"acc_qual_{accuracy}")
-        gap, pad_x, pad_y = 14, 40, 16
-        card_w = max(w1, w2) + pad_x
-        card_h = h1 + gap + h2 + pad_y * 2
-        cx1, cy1 = 24, top_h + 24
-        cx2, cy2 = cx1 + card_w, cy1 + card_h
+    if is_locked:
+        # ── 2. DRAW MASSIVE SAFETY LOCK SCREEN ──
+        # Dim the entire camera area heavily with a dark red tint via PIL
+        draw.rectangle([0, int(top_h), int(w), int(bot_y)], fill=(40, 10, 15))
 
-        _pil_rounded_fill(draw, cx1, cy1, cx2, cy2, fill=badge_bg, radius=14)
-        _pil_rounded_outline(draw, cx1, cy1, cx2, cy2, outline=badge_brd, width=2, radius=14)
-        _draw_centered_text(draw, cx1 + card_w / 2, cy1 + pad_y + h1 / 2, acc_line1, f_large, qual_color,
-                            f"acc_pct_{accuracy}")
-        _draw_centered_text(draw, cx1 + card_w / 2, cy1 + pad_y + h1 + gap + h2 / 2, acc_line2, f_tiny, qual_color,
-                            f"acc_qual_{accuracy}")
+        lock_msg = getattr(app, "coach_msg", "SAFETY PAUSE")
 
-    coach_text = getattr(app, "coach_msg", "")
-    coach_type = getattr(app, "coach_msg_type", "neutral")
-    if coach_text and hand_visible:
-        c_color, c_bg, c_brd = {
-            "good": ((0, 212, 170), (0, 30, 24), (0, 140, 110)),
-            "warn": ((245, 158, 11), (40, 28, 0), (170, 110, 0)),
-            "neutral": ((210, 220, 235), (20, 28, 46), (60, 80, 120)),
-        }.get(coach_type, ((210, 220, 235), (20, 28, 46), (60, 80, 120)))
+        # Calculate giant center box
+        lw_, lh_ = _text_size(draw, lock_msg, f_large, f"lock_{lock_msg}")
+        lx1, ly1 = (w - lw_) // 2 - 50, (h - lh_) // 2 - 40
+        lx2, ly2 = lx1 + lw_ + 100, ly1 + lh_ + 80
 
-        cw_, ch_ = _text_size(draw, coach_text, f_coach, f"coach_{coach_text[:20]}")
-        px1 = (w - cw_) // 2 - 24
-        py1 = top_h + 20
-        px2, py2 = px1 + cw_ + 48, py1 + ch_ + 20
+        # Draw red lock box
+        _pil_rounded_fill(draw, lx1, ly1, lx2, ly2, fill=(50, 10, 18), radius=16)
+        _pil_rounded_outline(draw, lx1, ly1, lx2, ly2, outline=(255, 77, 109), width=4, radius=16)
 
-        _pil_rounded_fill(draw, px1, py1, px2, py2, fill=c_bg, radius=14)
-        _pil_rounded_outline(draw, px1, py1, px2, py2, outline=c_brd, width=2, radius=14)
-        _draw_centered_text(draw, (px1 + px2) / 2, (py1 + py2) / 2, coach_text, f_coach, c_color,
-                            f"coach_{coach_text[:20]}")
+        # Pulse animation for the warning text
+        pulse_v = _pulse(now)
+        text_color = (255, int(100 + pulse_v * 100), int(120 + pulse_v * 100))
+        _draw_centered_text(draw, (lx1 + lx2) / 2, (ly1 + ly2) / 2, lock_msg, f_large, text_color,
+                            f"lock_{lock_msg}")
+
+    else:
+        # ── 3. NORMAL HUD (Only draws if NOT locked) ──
+        accuracy = getattr(app, "current_accuracy", 0)
+        if hand_visible and accuracy > 0:
+            if accuracy >= 85:
+                qual_text, qual_color = t.get("acc_excel", "EXCELLENT"), (0, 212, 170)
+                badge_bg, badge_brd = (0, 40, 32), (0, 160, 130)
+            elif accuracy >= 60:
+                qual_text, qual_color = t.get("acc_good", "GOOD"), (245, 158, 11)
+                badge_bg, badge_brd = (40, 30, 0), (180, 120, 0)
+            else:
+                qual_text, qual_color = t.get("acc_needs", "NEEDS WORK"), (255, 100, 120)
+                badge_bg, badge_brd = (50, 10, 18), (200, 50, 80)
+
+            acc_line1 = f"{accuracy}%"
+            acc_line2 = qual_text
+            w1, h1 = _text_size(draw, acc_line1, f_large, f"acc_pct_{accuracy}")
+            w2, h2 = _text_size(draw, acc_line2, f_tiny, f"acc_qual_{accuracy}")
+            gap, pad_x, pad_y = 14, 40, 16
+            card_w = max(w1, w2) + pad_x
+            card_h = h1 + gap + h2 + pad_y * 2
+            cx1, cy1 = 24, top_h + 24
+            cx2, cy2 = cx1 + card_w, cy1 + card_h
+
+            _pil_rounded_fill(draw, cx1, cy1, cx2, cy2, fill=badge_bg, radius=14)
+            _pil_rounded_outline(draw, cx1, cy1, cx2, cy2, outline=badge_brd, width=2, radius=14)
+            _draw_centered_text(draw, cx1 + card_w / 2, cy1 + pad_y + h1 / 2, acc_line1, f_large, qual_color,
+                                f"acc_pct_{accuracy}")
+            _draw_centered_text(draw, cx1 + card_w / 2, cy1 + pad_y + h1 + gap + h2 / 2, acc_line2, f_tiny,
+                                qual_color,
+                                f"acc_qual_{accuracy}")
+
+        coach_text = getattr(app, "coach_msg", "")
+        coach_type = getattr(app, "coach_msg_type", "neutral")
+        if coach_text and hand_visible:
+            c_color, c_bg, c_brd = {
+                "good": ((0, 212, 170), (0, 30, 24), (0, 140, 110)),
+                "warn": ((245, 158, 11), (40, 28, 0), (170, 110, 0)),
+                "neutral": ((210, 220, 235), (20, 28, 46), (60, 80, 120)),
+            }.get(coach_type, ((210, 220, 235), (20, 28, 46), (60, 80, 120)))
+
+            cw_, ch_ = _text_size(draw, coach_text, f_coach, f"coach_{coach_text[:20]}")
+            px1 = (w - cw_) // 2 - 24
+            py1 = top_h + 20
+            px2, py2 = px1 + cw_ + 48, py1 + ch_ + 20
+
+            _pil_rounded_fill(draw, px1, py1, px2, py2, fill=c_bg, radius=14)
+            _pil_rounded_outline(draw, px1, py1, px2, py2, outline=c_brd, width=2, radius=14)
+            _draw_centered_text(draw, (px1 + px2) / 2, (py1 + py2) / 2, coach_text, f_coach, c_color,
+                                f"coach_{coach_text[:20]}")
 
     canvas[:] = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
