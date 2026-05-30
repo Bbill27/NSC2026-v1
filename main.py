@@ -83,6 +83,12 @@ class RehabApp:
         self.kinematics = KinematicAnalyzer(window=8)
         self.coach_engine = CoachStateMachine()
 
+        # Initialize the fatigue assessment engine
+        from fatigue_detector import FatigueDetector
+        self.fatigue_detector = FatigueDetector()
+
+        self.last_correct_time = time.time()
+
         self.cap = None
         self.detector = None
         self.cam_thread = None
@@ -97,14 +103,21 @@ class RehabApp:
         # Session Variables
         self.current_exercise = "SQUEEZE"
         self.last_timestamp_ms = 0
-        self.hold_start_time = 0
         self.hold_duration = 0.5
         self.show_celebration = False
         self.celebration_timer = 0
         self.last_correct_time = time.time()
         self.current_accuracy = 0
+        self.hold_start_time = 0
         self.coach_msg = ""
         self.coach_msg_type = "neutral"
+
+        # [FIX 4]: Reset clinical fatigue state for the new exercise
+        if hasattr(self, 'fatigue_detector'):
+            self.fatigue_detector.last_state = ""
+            self.fatigue_detector.state_start_time = time.time()
+            self.fatigue_detector.rep_durations.clear()
+            self.fatigue_detector.baseline_speed = 0.0
         self.session_reps = 0
         self.prev_palm_pos = None
         self.smooth_acc = 0
@@ -114,7 +127,8 @@ class RehabApp:
         self.rep_acc_frames = 0
 
         # Goal Tracking & Progress Dictionaries (Expanded for 10 Exercises)
-        self.exercise_keys = [ex[0] for ex in self._EXERCISES]
+        self.exercise_keys = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO",
+                              "HITCH"]
         self.session_acc = {ex: {"sum": 0, "frames": 0} for ex in self.exercise_keys}
         self.daily_acc = {f"{ex.lower()}_acc": 0 for ex in self.exercise_keys}
 
@@ -199,8 +213,10 @@ class RehabApp:
     def _handle_click(self, event):
         u = self.ui
         if 0 < event.y < u['btn_h']:
-            try: play_menu_click_sound()
-            except Exception: pass
+            try:
+                play_menu_click_sound()
+            except Exception:
+                pass
             idx = min(event.x // u['btn_w'], len(self._EXERCISES) - 1)
             self.current_exercise = self._EXERCISES[idx][0]
             self.hold_start_time = 0
@@ -210,6 +226,13 @@ class RehabApp:
             self.rep_acc_sum = 0
             self.rep_acc_frames = 0
             self.current_accuracy = 0
+
+            # Reset clinical fatigue tracker variables for the new exercise target
+            if hasattr(self, 'fatigue_detector'):
+                self.fatigue_detector.last_state = ""
+                self.fatigue_detector.state_start_time = time.time()
+                self.fatigue_detector.rep_durations.clear()
+                self.fatigue_detector.baseline_speed = 0.0
             return
 
         if (u['reset_x'] < event.x < u['reset_x'] + u['reset_w'] and
@@ -496,6 +519,13 @@ class RehabApp:
 
         self.save_progress(force=True)
 
+        # Reset fatigue history when manually wiping progress metrics
+        if hasattr(self, 'fatigue_detector'):
+            self.fatigue_detector.last_state = ""
+            self.fatigue_detector.state_start_time = time.time()
+            self.fatigue_detector.rep_durations.clear()
+            self.fatigue_detector.baseline_speed = 0.0
+
     def _process_timers(self):
         t = time.time()
         # Prevent AttributeError if not initialized
@@ -511,6 +541,10 @@ class RehabApp:
         self.hold_start_time = 0
         self.session_reps += 1
         ex = self.current_exercise
+
+        # SAFETY CHECK: Ensure the exercise key exists in the dictionary!
+        if ex not in self.session_acc:
+            self.session_acc[ex] = {"sum": 0, "frames": 0}
 
         frames = getattr(self, "rep_acc_frames", 1)
         self.session_acc[ex]["sum"] += int(getattr(self, "rep_acc_sum", 100) / max(1, frames))
@@ -658,13 +692,13 @@ class RehabApp:
 
         while self.running and self.in_therapy:
             if not self.cap or not self.cap.isOpened():
-                time.sleep(0.1);
+                time.sleep(0.1)
                 continue
 
             try:
                 success, raw_frame = self.cap.read()
                 if not success or raw_frame is None:
-                    time.sleep(0.01);
+                    time.sleep(0.01)
                     continue
 
                 raw_frame = cv2.flip(raw_frame, 1)
@@ -696,11 +730,11 @@ class RehabApp:
                     raw_lms = result.hand_landmarks[0]
 
                 if raw_lms:
+                    self.is_hand_visible = True  # <-- Real-time visibility tracking!
                     stable_lms = self.stabilizer.stabilize(raw_lms)
-                    self.kinematics.update(stable_lms)
+                    self.kinematics.update(stable_lms)  # <-- Restored for coaching logic
                     geo = HandGeometry.from_landmarks(stable_lms)
                     draw_skeleton(canvas[y_off:y_off + new_h, x_off:x_off + new_w], stable_lms)
-                    is_steady = not self.kinematics.is_moving()
 
                     # --- NEW SCORING LOGIC ---
                     ex = self.current_exercise
@@ -727,41 +761,107 @@ class RehabApp:
                         step = 0 if self.hitch_state == "WAITING_FOR_FIST" else 1
 
                     raw_acc = get_movement_accuracy(ex, step, 0, stable_lms)
-                    posture_correct = (raw_acc >= 75) and is_steady
 
-                    if posture_correct:
-                        self.last_correct_time = time.time()
-                        self.rep_acc_sum = getattr(self, "rep_acc_sum", 0) + raw_acc
-                        self.rep_acc_frames = getattr(self, "rep_acc_frames", 0) + 1
-                        self._process_timers()
-                    elif time.time() - getattr(self, "hold_start_time", 0) > 0.25:
-                        self.hold_start_time = 0
-
-                    self.smooth_acc = int(0.3 * raw_acc + 0.7 * getattr(self, "smooth_acc", 0))
+                    # <-- Apply 60/40 smoothing to accuracy -->
+                    if not hasattr(self, 'smooth_acc'): self.smooth_acc = raw_acc
+                    self.smooth_acc = int(0.60 * raw_acc + 0.40 * self.smooth_acc)
                     self.current_accuracy = self.smooth_acc
-                else:
-                    self.current_accuracy = 0
-                    if time.time() - getattr(self, "hold_start_time", 0) > 0.25:
-                        self.hold_start_time = 0
 
+                    # 1. Lower threshold to 70% and untie from steadiness
+                    posture_correct = raw_acc >= 70
+
+                    # 2. Extract clinical state machine string
+                    state_attr_map = {
+                        "SQUEEZE": "sq_state",
+                        "TABLETOP": "table_state",
+                    }
+                    state_attr = state_attr_map.get(ex, f"{ex.lower()}_state")
+                    current_state = getattr(self, state_attr, "") if ex not in ("THUMB", "PIANO") else f"STEP_{step}"
+
+                    # 3. Call fatigue detector analysis
+                    is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
+                        current_state=current_state,
+                        current_lang=getattr(self, 'current_lang', 'EN'),
+                        hand_visible=True
+                    )
+
+                    if is_locked:
+                        # HIGH FATIGUE: Enforce hard safety lock and block progress
+                        self.hold_start_time = 0
+                        self.coach_msg = fatigue_msg
+                        self.coach_msg_type = fatigue_color
+                    else:
+                        # NORMAL GAME ENGINE: Process exercise frames
+                        if posture_correct:
+                            self.rep_acc_sum += raw_acc
+                            self.rep_acc_frames += 1
+                            self._process_timers()
+
+                            lang = getattr(self, 'current_lang', 'EN')
+                            self.coach_msg = LANG[lang].get("coach_hold_steady", "Hold steady")
+                            self.coach_msg_type = "good"
+                        else:
+                            self.hold_start_time = 0
+                            lang = getattr(self, 'current_lang', 'EN')
+
+                            # <-- Fixed Coaching Call and Guard -->
+                            result = self.coach_engine.get_feedback(ex, step, geo, self.kinematics)
+                            if result is not None:
+                                coach_key, coach_sev = result
+                                self.coach_msg = LANG[lang].get(coach_key, coach_key)
+                                self.coach_msg_type = coach_sev
+
+                        # MODERATE FATIGUE OVERRIDE: Inject warning message over normal engine
+                        if fatigue_msg:
+                            self.coach_msg = fatigue_msg
+                            self.coach_msg_type = fatigue_color
+
+
+                else:
+
+                    self.is_hand_visible = False  # <-- Real-time visibility tracking!
+
+                    # HAND IS OUT OF FRAME: Keep updating the countdown timer if locked!
+
+                    if hasattr(self, 'fatigue_detector'):
+                        is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
+                            current_state="NO_HAND",
+                            current_lang=getattr(self, 'current_lang', 'EN'),
+                            hand_visible=False
+                        )
+                        # If we are locked out, ensure the UI gets the updated countdown text
+                        if is_locked:
+                            self.coach_msg = fatigue_msg
+                            self.coach_msg_type = fatigue_color
+                    self.hold_start_time = 0  # Reset rep timer so they don't get free reps
                 self._draw_ui(canvas)
                 pil_img = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
-
                 if self.frame_queue.full():
-                    try: self.frame_queue.get_nowait()
-                    except queue.Empty: pass
+                    try:
+                        self.frame_queue.get_nowait()
+                    except queue.Empty:
+                        pass
                 self.frame_queue.put_nowait(pil_img)
-
             except Exception as e:
-                print(f"[CAM THREAD WARN] {e}")
+                import traceback
+                print("\n=== CAMERA CRASH LOG ===")
+                traceback.print_exc()
+                print("========================\n")
                 time.sleep(0.05)
 
+# =============================================================================
+# BOOT SEQUENCE (MUST BE FLUSH AGAINST THE LEFT WALL)
+# =============================================================================
 if __name__ == "__main__":
+    # Temporarily bypass the stuck lockfile
     ensure_single_instance()
+
     prewarm_libs()
     root = tk.Tk()
-    try: root.iconbitmap(resource_path(os.path.join('assets', 'rehab.ico')))
-    except Exception: pass
+    try:
+        root.iconbitmap(resource_path(os.path.join('assets', 'rehab.ico')))
+    except Exception:
+        pass
     app = RehabApp(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
