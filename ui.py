@@ -98,8 +98,8 @@ LANG = {
         "ex_7": "7. Claw", "ex_8": "8. Wrist", "ex_9": "9. Piano", "ex_10": "10. Hitch",
         "move_closer": "NO HAND: MOVE CLOSER",
         "set": "Set", "rep": "Rep", "daily_goal": "Goal Met!",
-        "hud_reset": "RESET [R]",
-        "hud_menu": "LEAVE [M]",
+        "hud_reset": "RESET",
+        "hud_menu": "LEAVE",
         "acc_title": "Accuracy:", "acc_excel": "EXCELLENT", "acc_good": "GOOD", "acc_needs": "NEEDS WORK",
         "session_complete": "SESSION COMPLETE",
         "total_ex": "Total Exercises:",
@@ -173,8 +173,8 @@ LANG = {
         "ex_7": "7. ทำตะขอ", "ex_8": "8. พับข้อมือ", "ex_9": "9. พรมนิ้ว", "ex_10": "10. ชูนิ้วโป้ง",
         "move_closer": "ไม่พบมือ: กรุณาขยับเข้ามาใกล้",
         "set": "เซ็ต", "rep": "ครั้ง", "daily_goal": "สำเร็จเป้าหมาย!",
-        "hud_reset": "Reset [R]",
-        "hud_menu": "ออก [M]",
+        "hud_reset": "รีเซ็ต",
+        "hud_menu": "กลับเมนูหลัก",
         "acc_title": "ความแม่นยำ:", "acc_excel": "ดีเยี่ยม", "acc_good": "ดี", "acc_needs": "พยายามอีกนิด",
         "session_complete": "สรุปผลการบำบัด",
         "total_ex": "จำนวนท่าที่ฝึก:",
@@ -289,7 +289,7 @@ def get_settings_path():
 
 def load_user_settings(app):
     path = get_settings_path()
-    app.user_settings = {"bgm_vol": 0.5, "sfx_vol": 0.8, "lang": "EN"}
+    app.user_settings = {"sfx_vol": 0.8, "lang": "EN"}
     if os.path.exists(path):
         try:
             with open(path, "r") as f:
@@ -297,7 +297,6 @@ def load_user_settings(app):
         except Exception:
             pass
     app.current_lang = app.user_settings["lang"]
-    audio.set_bgm_volume(app.user_settings["bgm_vol"])
     audio.set_sfx_volume(app.user_settings["sfx_vol"])
 
 def save_user_settings(app):
@@ -341,8 +340,7 @@ def apply_language(app):
 
     # Settings Screen
     app.lbl_set_title.config(text=t["settings_title"])
-    app.lbl_vol_m.config(text=t["vol_music"])
-    app.lbl_vol_s.config(text=t["vol_sfx"])
+    if hasattr(app, 'lbl_vol_s'): app.lbl_vol_s.config(text=t["vol_sfx"])
     app.lbl_lang.config(text=t["language"])
     app.lbl_help.config(text=t["help"])
     app.btn_help.config(text=t["send_msg"])
@@ -609,19 +607,21 @@ def init_tkinter_ui(app):
     card.pack(pady=28, ipadx=10)
 
     def on_music_vol(v): audio.set_bgm_volume(float(v)); app.user_settings["bgm_vol"] = float(v); save_user_settings(app)
-    def on_sfx_vol(v):   audio.set_sfx_volume(float(v)); app.user_settings["sfx_vol"] = float(v); save_user_settings(app)
 
-    style = ttk.Style(); style.theme_use("clam")
-    style.configure("Custom.Horizontal.TScale", troughcolor=SURFACE_ALT, sliderlength=18, sliderrelief="flat", background=ACCENT_COLOR)
+    def on_sfx_vol(v):
+        audio.set_sfx_volume(float(v)); app.user_settings["sfx_vol"] = float(v); save_user_settings(app)
+
+    style = ttk.Style();
+    style.theme_use("clam")
+    style.configure("Custom.Horizontal.TScale", troughcolor=SURFACE_ALT, sliderlength=18, sliderrelief="flat",
+                    background=ACCENT_COLOR)
     ROW_PAD = {"pady": 12, "padx": 10}
 
-    app.lbl_vol_m = tk.Label(card, font=label_font, fg=TEXT_COLOR, bg=SURFACE_COLOR, anchor="w", width=18)
-    app.lbl_vol_m.grid(row=0, column=0, sticky="w", **ROW_PAD)
-    ttk.Scale(card, from_=0.0, to=1.0, value=app.user_settings["bgm_vol"], command=on_music_vol, style="Custom.Horizontal.TScale", length=220).grid(row=0, column=1, sticky="ew", **ROW_PAD)
-
+    # BGM Slider removed completely. SFX moved up to row 0.
     app.lbl_vol_s = tk.Label(card, font=label_font, fg=TEXT_COLOR, bg=SURFACE_COLOR, anchor="w", width=18)
-    app.lbl_vol_s.grid(row=1, column=0, sticky="w", **ROW_PAD)
-    ttk.Scale(card, from_=0.0, to=1.0, value=app.user_settings["sfx_vol"], command=on_sfx_vol, style="Custom.Horizontal.TScale", length=220).grid(row=1, column=1, sticky="ew", **ROW_PAD)
+    app.lbl_vol_s.grid(row=0, column=0, sticky="w", **ROW_PAD)
+    ttk.Scale(card, from_=0.0, to=1.0, value=app.user_settings["sfx_vol"], command=on_sfx_vol,
+              style="Custom.Horizontal.TScale", length=220).grid(row=0, column=1, sticky="ew", **ROW_PAD)
 
     tk.Frame(card, bg=BORDER_COLOR, height=1).grid(row=2, column=0, columnspan=2, sticky="ew", pady=4)
     app.lbl_lang = tk.Label(card, font=label_font, fg=TEXT_COLOR, bg=SURFACE_COLOR, anchor="w", width=18)
@@ -678,8 +678,10 @@ def init_tkinter_ui(app):
 
     def export_report():
         try:
-            from audio import play_success_sound
-            play_success_sound()
+            from audio import (
+                play_success_sound, play_celebration_sound,
+                play_menu_click_sound, play_exit_reset_sound
+            )
         except Exception:
             pass
 
@@ -751,22 +753,34 @@ def init_tkinter_ui(app):
                                 p_acc = history[pd].get(f"{prefix}_acc", 0)
 
                                 if p_sets == 0:
-                                    consec_good = 0;
-                                    consec_poor = 0
+                                    consec_good = consec_poor = 0
                                     continue
 
-                                if p_sets >= target and p_acc >= 80:
-                                    consec_good += 1;
-                                    consec_poor = 0
-                                elif p_sets < target or p_acc < 50:
-                                    consec_poor += 1;
-                                    consec_good = 0
-                                else:
-                                    consec_good = 0;
-                                    consec_poor = 0
+                                # --- MATCHING THE EFFORT RATIO ENGINE ---
+                                effort_ratio = p_sets / max(1, target)
 
-                                if consec_good >= 2: target = min(8, target + 1); consec_good = 0
-                                if consec_poor >= 2: target = max(1, target - 1); consec_poor = 0
+                                # 1. OVER-PERFORMANCE JUMP
+                                if effort_ratio >= 1.5 and p_acc >= 75:
+                                    target = min(8, target + 1)
+                                    consec_good = consec_poor = 0
+
+                                # 2. STANDARD SUCCESS
+                                elif effort_ratio >= 1.0 and p_acc >= 80:
+                                    consec_good += 1
+                                    consec_poor = 0
+                                    if consec_good >= 2:
+                                        target = min(8, target + 1)
+                                        consec_good = 0
+
+                                # 3. FATIGUE / STRUGGLE
+                                elif effort_ratio < 1.0 or p_acc < 50:
+                                    consec_poor += 1
+                                    consec_good = 0
+                                    if consec_poor >= 2:
+                                        target = max(1, target - 1)
+                                        consec_poor = 0
+                                else:
+                                    consec_good = consec_poor = 0
 
                             # Format identically to the UI: "Sets/Target (Accuracy%)"
                             display_acc = acc if sets > 0 else 0
@@ -981,6 +995,12 @@ def populate_dashboard(app):
 
     def fmt_cell(sets, goal, acc):
         display_acc = acc if sets > 0 else 0
+
+        # Clinical formatting, no emojis.
+        # Adding a subtle '+' if the patient pushed past the AI's target limits.
+        if sets > goal:
+            return f"{sets}/{goal}+ ({display_acc}%)"
+
         return f"{sets}/{goal} ({display_acc}%)"
 
     # <--- FIXED DICTIONARY KEYS --->
@@ -1125,8 +1145,8 @@ def _blend_rect(img_arr, np, x1, y1, x2, y2, fill_rgb, alpha=0.72):
 def recalc_ui_metrics(app):
     w, h = app.render_w, app.render_h
     app.ui = {
-        "btn_w": w // 10, "btn_h": max(60, h // 11),  # <-- Changed // 6 to // 10
-        "menu_w": 140, "menu_h": 45,
+        "btn_w": w // 10, "btn_h": max(60, h // 11),
+        "menu_w": 190, "menu_h": 45,  # Increased width to comfortably fit the new Thai text
         "reset_w": 140, "reset_h": 45,
     }
     app.ui["menu_x"], app.ui["menu_y"] = 24, h - 75
