@@ -3,10 +3,6 @@ CerebroMotion Clinical Suite - Main Application Controller
 Handles the core application lifecycle, OpenCV camera feed, state management, and 10-exercise clinical tracking.
 """
 
-# =============================================================================
-# 1. IMPORTS
-# =============================================================================
-print("[BOOT 1/7] Loading standard libraries...")
 import os
 import sys
 import time
@@ -23,8 +19,8 @@ from utils import (
     _ensure_cv2, _ensure_np, _ensure_pil, _ensure_mp, get_distance_2d
 )
 from audio import (
-    play_success_sound, play_celebration_sound, start_bgm,
-    play_menu_click_sound, play_exit_reset_sound
+    play_success_sound, play_celebration_sound,
+    play_menu_click_sound, play_exit_reset_sound, speak_message
 )
 
 print("[BOOT 3/7] Loading AI & Logic modules...")
@@ -186,21 +182,10 @@ class RehabApp:
                 self.root.attributes('-fullscreen', True)
 
     def _on_focus_out(self, event):
-        try:
-            focused = self.root.focus_get()
-        except KeyError:
-            focused = self.root
-        if focused is None:
-            try:
-                from audio import pause_bgm
-                pause_bgm()
-            except Exception: pass
+        pass
 
     def _on_focus_in(self, event):
-        try:
-            from audio import unpause_bgm
-            unpause_bgm()
-        except Exception: pass
+        pass
 
     def _handle_resize(self, event):
         if event.width > 100 and event.height > 100:
@@ -250,12 +235,13 @@ class RehabApp:
             return
 
     def on_close(self):
+        print("[SYSTEM] Shutting down application suite...")
+        # Tell the background thread to stop
         self.running = False
-        if self.cam_thread and self.cam_thread.is_alive():
-            self.cam_thread.join(timeout=1.0)
-        if self.cap: self.cap.release()
-        try: self.detector.close()
-        except Exception: pass
+        self.in_therapy = False
+
+        # Do not block with .join(). Let Tkinter destroy the window naturally
+        # so the OS can safely release the webcam hardware in the background.
         self.root.destroy()
 
     # =============================================================================
@@ -377,39 +363,33 @@ class RehabApp:
     # 6. AI & SYSTEM BOOT SEQUENCE
     # =============================================================================
     def _init_backend(self):
-        print("[BACKEND] Thread started. Waiting for libs...")
+        print("[BACKEND] Thread started. Checking model...")
         try:
-            if not _prewarm_done.is_set(): _prewarm_done.wait()
-            _detector_ready.wait()
+            # We no longer wait for vision.py's broken background thread.
 
-            if _prebuilt_detector is not None:
-                self.detector = _prebuilt_detector
-            else:
-                from mediapipe.tasks import python as mp_python
-                from mediapipe.tasks.python import vision
-                import urllib.request
+            import urllib.request
+            model_path = resource_path(os.path.join("assets", "hand_landmarker.task"))
 
-                model_path = resource_path(os.path.join("assets", "hand_landmarker.task"))
-                if os.path.exists(model_path) and os.path.getsize(model_path) < 1000000:
-                    os.remove(model_path)
+            # 1. Clean up corrupted files if they exist
+            if os.path.exists(model_path) and os.path.getsize(model_path) < 1000000:
+                os.remove(model_path)
 
-                if not os.path.exists(model_path):
-                    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            # 2. Download the model if missing
+            if not os.path.exists(model_path):
+                os.makedirs(os.path.dirname(model_path), exist_ok=True)
+                try:
+                    print("[SYSTEM] Model missing. Attempting to download from cloud...")
                     urllib.request.urlretrieve(
                         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
                         model_path)
+                except Exception as e:
+                    print(f"[OFFLINE ERROR] Cannot download AI model. Please connect to internet. {e}")
+                    return
 
-                base_opts = mp_python.BaseOptions(model_asset_path=model_path)
-                options = vision.HandLandmarkerOptions(
-                    base_options=base_opts, num_hands=1,
-                    min_hand_detection_confidence=0.65,
-                    min_hand_presence_confidence=0.65,
-                    min_tracking_confidence=0.65,
-                    running_mode=vision.RunningMode.VIDEO,
-                )
-                self.detector = vision.HandLandmarker.create_from_options(options)
-
+            # Note: We NO LONGER build self.detector here.
+            # We just trigger the UI to show the start button.
             self.root.after(0, self._on_backend_ready)
+
         except Exception as e:
             print(f"[BACKEND ERROR] {e}")
 
@@ -432,15 +412,37 @@ class RehabApp:
             self.start_btn.config(text=msg, bg="#e74c3c", state="disabled")
             return
 
+        # ANTI-ZOMBIE GUARD: Stop processing if a thread is already running
+        if self.cam_thread and self.cam_thread.is_alive():
+            print("[SYSTEM WARNING] Thread overlap blocked. Waiting for old thread to completely clear.")
+            return
+
         if self.start_btn['state'] in ('normal', 'active'):
-            self.start_btn.config(state="disabled", text="OPENING CAMERA...", bg="#475569")
+            lang = getattr(self, 'current_lang', 'EN')
+            loading_text = "PREPARING AI & CAMERA..." if lang == "EN" else "กำลังเตรียม AI และกล้อง..."
+
+            # Lock the button into a loading state
+            self.start_btn.config(state="disabled", text=loading_text, bg="#475569")
             self.start_btn.update()
-            threading.Thread(target=self._open_camera_and_start, daemon=True).start()
+
+            # Flush out any old frames
+            with self.frame_queue.mutex:
+                self.frame_queue.queue.clear()
+
+            # --- THE FIX: Launch the single loop directly ---
+            self.in_therapy = True
+            self.last_correct_time = time.time()
+
+            self.cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
+            self.cam_thread.start()
+
+            # Tell the main window to wait until the AI produces the first video frame
+            self.root.after(0, self._wait_for_first_frame)
 
     def _open_camera_and_start(self):
         cv2 = _ensure_cv2()
         self.cap = cv2.VideoCapture(0)
-        time.sleep(1.0)
+        time.sleep(0.5)
         success = False
         for _ in range(5):
             success, _ = self.cap.read()
@@ -452,34 +454,48 @@ class RehabApp:
             self.cap = None
             self.root.after(0, self._camera_failed)
             return
-        self.root.after(0, self._begin_therapy_session)
+
+        # Do NOT switch the UI yet. Start the AI background thread first.
+        self.in_therapy = True
+        self.last_correct_time = time.time()
+        self.cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
+        self.cam_thread.start()
+
+        # Tell the main window to wait until the AI produces the first video frame
+        self.root.after(0, self._wait_for_first_frame)
+
+    def _wait_for_first_frame(self):
+        if not self.in_therapy:
+            return  # User cancelled or process aborted
+
+        if not self.frame_queue.empty():
+            # AI has successfully processed the first frame!
+            # NOW it is safe to hide the menu and show the video. No black screens!
+            self.menu_frame.place_forget()
+            self.video_frame.pack(fill="both", expand=True)
+            self.update_gui()
+        else:
+            # AI is still loading the C++ models. Check again in 100 milliseconds.
+            self.root.after(100, self._wait_for_first_frame)
 
     def _camera_failed(self):
         self.start_btn.config(text="CAMERA ERROR - TRY AGAIN", bg="#e74c3c", state="normal")
 
-    def _begin_therapy_session(self):
-        self.in_therapy = True
-        self.last_correct_time = time.time()
-        self.menu_frame.place_forget()
-        self.video_frame.pack(fill="both", expand=True)
-        self.cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
-        self.cam_thread.start()
-        self.update_gui()
-
     # =============================================================================
     # 7. THERAPY STATE & TIMERS
     # =============================================================================
+    # WRONG — releases cap immediately while thread may still be using it
+    # CORRECT — wait for the camera thread to fully stop before releasing hardware
     def return_to_menu(self):
-        # 1. Tell the background thread to stop tracking
+        # 1. Tell the background thread to stop.
         self.in_therapy = False
 
-        # 2. Physically release the webcam hardware to save battery!
-        if self.cap is not None:
-            self.cap.release()
-            self.cap = None
+        # CRITICAL FIX: DO NOT call .join() or cap.release() here!
+        # It deadlocks Tkinter. The camera_loop's 'finally' block handles it safely.
 
-        # 3. Hide the video screen and restore the menu button
+        # 2. Instantly switch the UI back to the menu
         self.video_frame.pack_forget()
+
         lang = getattr(self, 'current_lang', 'EN')
         self.start_btn.config(
             text="START THERAPY SESSION" if lang == "EN" else "เริ่มการบำบัด",
@@ -487,7 +503,7 @@ class RehabApp:
         )
         self.menu_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # 4. Show the score popup
+        # 3. Show the score popup
         show_session_summary(self)
 
     def reset_current_exercise(self):
@@ -636,6 +652,12 @@ class RehabApp:
         goal = getattr(self, f"{ex.lower()}_goal", (3, 15))
         lang = getattr(self, 'current_lang', 'EN')
 
+        # --- TRUE LIMIT TRACKING ---
+        # Allow the numbers to freely exceed the goal to collect maximum adaptive data
+        # It will cleanly display actual record vs limit (e.g., 4/3)
+        current_set_display = sets + 1
+        current_rep_display = reps
+
         # Hardcoded foolproof translations
         if lang == "TH":
             inst_map = {
@@ -650,7 +672,7 @@ class RehabApp:
                 "PIANO": f"ยกนิ้ว {['ชี้', 'กลาง', 'นาง', 'ก้อย'][getattr(self, 'curr_piano_idx', 0)]}",
                 "HITCH": "1. กำมือ" if getattr(self, 'hitch_state', '') == "WAITING_FOR_FIST" else "2. ชูนิ้วโป้ง"
             }
-            progress_text = f"เซ็ต: {sets + 1}/{goal[0]} | ครั้ง: {reps}/{goal[1]}"
+            progress_text = f"เซ็ต: {current_set_display}/{goal[0]} | ครั้ง: {current_rep_display}/{goal[1]}"
         else:
             inst_map = {
                 "SQUEEZE": "Make Fist" if getattr(self, 'sq_state', '') == "WAITING_FOR_FIST" else "Open Hand",
@@ -658,14 +680,13 @@ class RehabApp:
                 "WIPER": "Wipe Left" if getattr(self, 'wiper_state', '') == "WAITING_FOR_LEFT" else "Wipe Right",
                 "FLIP": "Palm Up" if getattr(self, 'flip_state', '') == "WAITING_FOR_UP" else "Palm Down",
                 "TABLETOP": "Make Fist" if getattr(self, 'table_state', '') == "WAITING_FOR_FIST" else "Make L-Shape",
-                "SCISSOR": "Close Fingers" if getattr(self, 'scissor_state',
-                                                      '') == "WAITING_FOR_RELAX" else "Spread Fingers",
+                "SCISSOR": "Close Fingers" if getattr(self, 'scissor_state', '') == "WAITING_FOR_RELAX" else "Spread Fingers",
                 "HOOK": "Hand Flat" if getattr(self, 'hook_state', '') == "WAITING_FOR_RELAX" else "Make Claw",
                 "WRIST": "Wrist Up" if getattr(self, 'wrist_state', '') == "WAITING_FOR_UP" else "Wrist Down",
                 "PIANO": f"Lift {['INDEX', 'MIDDLE', 'RING', 'PINKY'][getattr(self, 'curr_piano_idx', 0)]}",
                 "HITCH": "Make Fist" if getattr(self, 'hitch_state', '') == "WAITING_FOR_FIST" else "Thumb Out"
             }
-            progress_text = f"Set: {sets + 1}/{goal[0]} | Rep: {reps}/{goal[1]}"
+            progress_text = f"Set: {current_set_display}/{goal[0]} | Rep: {current_rep_display}/{goal[1]}"
 
         inst = inst_map.get(ex, "Follow Movement")
         return {"inst": inst, "progress_text": progress_text}
@@ -685,169 +706,208 @@ class RehabApp:
     # 9. CAMERA & AI LOOP
     # =============================================================================
     def camera_loop(self):
+        print("[SYSTEM] Camera loop thread started safely.")
         cv2 = _ensure_cv2()
         np = _ensure_np()
         mp = _ensure_mp()
         Image, ImageTk = _ensure_pil()
 
-        while self.running and self.in_therapy:
-            if not self.cap or not self.cap.isOpened():
-                time.sleep(0.1)
-                continue
+        # --- ONE THREAD RULE FIX ---
+        # The camera MUST be opened and closed in the exact same thread to prevent Windows crashes.
+        self.cap = cv2.VideoCapture(0)
+        time.sleep(0.5)
+        success = False
+        for _ in range(5):
+            success, _ = self.cap.read()
+            if success: break
+            time.sleep(0.1)
 
-            try:
-                success, raw_frame = self.cap.read()
-                if not success or raw_frame is None:
-                    time.sleep(0.01)
-                    continue
+        if not success:
+            if self.cap: self.cap.release()
+            self.cap = None
+            self.in_therapy = False
+            self.root.after(0, self._camera_failed)
+            return
 
-                raw_frame = cv2.flip(raw_frame, 1)
-                rgb_frame = cv2.cvtColor(cv2.resize(raw_frame, (320, 180)), cv2.COLOR_BGR2RGB)
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        from mediapipe.tasks import python as mp_python
+        from mediapipe.tasks.python import vision
 
-                ts_ms = int(time.time() * 1000)
-                if ts_ms <= self.last_timestamp_ms: ts_ms = self.last_timestamp_ms + 1
-                self.last_timestamp_ms = ts_ms
+        model_path = resource_path(os.path.join("assets", "hand_landmarker.task"))
+        base_opts = mp_python.BaseOptions(model_asset_path=model_path)
+        options = vision.HandLandmarkerOptions(
+            base_options=base_opts, num_hands=1,
+            # Loosened to 0.45 so the skeleton survives when resting on a table
+            min_hand_detection_confidence=0.45,
+            min_hand_presence_confidence=0.45,
+            running_mode=vision.RunningMode.IMAGE,
+        )
 
-                result = self.detector.detect_for_video(mp_image, ts_ms)
+        try:
+            with vision.HandLandmarker.create_from_options(options) as detector:
+                while self.running and self.in_therapy:
+                    # ... [THE REST OF YOUR CAMERA LOOP STAYS EXACTLY THE SAME] ...
+                    if not self.cap or not self.cap.isOpened():
+                        time.sleep(0.1)
+                        continue
 
-                # Setup Canvas
-                cam_h, cam_w = raw_frame.shape[:2]
-                scale = min(self.render_w / cam_w, self.render_h / cam_h)
-                new_w, new_h = int(cam_w * scale), int(cam_h * scale)
-                need_shape = (self.render_h, self.render_w, 3)
-                if self._canvas_buf is None or self._canvas_buf.shape != need_shape:
-                    self._canvas_buf = np.zeros(need_shape, dtype=np.uint8)
-
-                canvas = self._canvas_buf
-                canvas[:] = 0
-                y_off, x_off = (self.render_h - new_h) // 2, (self.render_w - new_w) // 2
-                canvas[y_off:y_off + new_h, x_off:x_off + new_w] = cv2.resize(raw_frame, (new_w, new_h))
-
-                raw_lms = None
-                if result.hand_landmarks and (
-                        not hasattr(result, 'handedness') or result.handedness[0][0].score > 0.60):
-                    raw_lms = result.hand_landmarks[0]
-
-                if raw_lms:
-                    self.is_hand_visible = True  # <-- Real-time visibility tracking!
-                    stable_lms = self.stabilizer.stabilize(raw_lms)
-                    self.kinematics.update(stable_lms)  # <-- Restored for coaching logic
-                    geo = HandGeometry.from_landmarks(stable_lms)
-                    draw_skeleton(canvas[y_off:y_off + new_h, x_off:x_off + new_w], stable_lms)
-
-                    # --- NEW SCORING LOGIC ---
-                    ex = self.current_exercise
-                    step = 0
-                    if ex == "SQUEEZE":
-                        step = 0 if self.sq_state == "WAITING_FOR_FIST" else 1
-                    elif ex == "THUMB":
-                        step = self.curr_thumb_idx
-                    elif ex == "WIPER":
-                        step = 0 if self.wiper_state == "WAITING_FOR_LEFT" else 1
-                    elif ex == "FLIP":
-                        step = 0 if self.flip_state == "WAITING_FOR_UP" else 1
-                    elif ex == "TABLETOP":
-                        step = 0 if self.table_state == "WAITING_FOR_FIST" else 1
-                    elif ex == "SCISSOR":
-                        step = 0 if self.scissor_state == "WAITING_FOR_RELAX" else 1
-                    elif ex == "HOOK":
-                        step = 0 if self.hook_state == "WAITING_FOR_RELAX" else 1
-                    elif ex == "WRIST":
-                        step = 0 if self.wrist_state == "WAITING_FOR_UP" else 1
-                    elif ex == "PIANO":
-                        step = self.curr_piano_idx
-                    elif ex == "HITCH":
-                        step = 0 if self.hitch_state == "WAITING_FOR_FIST" else 1
-
-                    raw_acc = get_movement_accuracy(ex, step, 0, stable_lms)
-
-                    # <-- Apply 60/40 smoothing to accuracy -->
-                    if not hasattr(self, 'smooth_acc'): self.smooth_acc = raw_acc
-                    self.smooth_acc = int(0.60 * raw_acc + 0.40 * self.smooth_acc)
-                    self.current_accuracy = self.smooth_acc
-
-                    # 1. Lower threshold to 70% and untie from steadiness
-                    posture_correct = raw_acc >= 70
-
-                    # 2. Extract clinical state machine string
-                    state_attr_map = {
-                        "SQUEEZE": "sq_state",
-                        "TABLETOP": "table_state",
-                    }
-                    state_attr = state_attr_map.get(ex, f"{ex.lower()}_state")
-                    current_state = getattr(self, state_attr, "") if ex not in ("THUMB", "PIANO") else f"STEP_{step}"
-
-                    # 3. Call fatigue detector analysis
-                    is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
-                        current_state=current_state,
-                        current_lang=getattr(self, 'current_lang', 'EN'),
-                        hand_visible=True
-                    )
-
-                    if is_locked:
-                        # HIGH FATIGUE: Enforce hard safety lock and block progress
-                        self.hold_start_time = 0
-                        self.coach_msg = fatigue_msg
-                        self.coach_msg_type = fatigue_color
-                    else:
-                        # NORMAL GAME ENGINE: Process exercise frames
-                        if posture_correct:
-                            self.rep_acc_sum += raw_acc
-                            self.rep_acc_frames += 1
-                            self._process_timers()
-
-                            lang = getattr(self, 'current_lang', 'EN')
-                            self.coach_msg = LANG[lang].get("coach_hold_steady", "Hold steady")
-                            self.coach_msg_type = "good"
-                        else:
-                            self.hold_start_time = 0
-                            lang = getattr(self, 'current_lang', 'EN')
-
-                            # <-- Fixed Coaching Call and Guard -->
-                            result = self.coach_engine.get_feedback(ex, step, geo, self.kinematics)
-                            if result is not None:
-                                coach_key, coach_sev = result
-                                self.coach_msg = LANG[lang].get(coach_key, coach_key)
-                                self.coach_msg_type = coach_sev
-
-                        # MODERATE FATIGUE OVERRIDE: Inject warning message over normal engine
-                        if fatigue_msg:
-                            self.coach_msg = fatigue_msg
-                            self.coach_msg_type = fatigue_color
-
-
-                else:
-
-                    self.is_hand_visible = False  # <-- Real-time visibility tracking!
-
-                    # HAND IS OUT OF FRAME: Keep updating the countdown timer if locked!
-
-                    if hasattr(self, 'fatigue_detector'):
-                        is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
-                            current_state="NO_HAND",
-                            current_lang=getattr(self, 'current_lang', 'EN'),
-                            hand_visible=False
-                        )
-                        # If we are locked out, ensure the UI gets the updated countdown text
-                        if is_locked:
-                            self.coach_msg = fatigue_msg
-                            self.coach_msg_type = fatigue_color
-                    self.hold_start_time = 0  # Reset rep timer so they don't get free reps
-                self._draw_ui(canvas)
-                pil_img = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
-                if self.frame_queue.full():
                     try:
-                        self.frame_queue.get_nowait()
-                    except queue.Empty:
-                        pass
-                self.frame_queue.put_nowait(pil_img)
-            except Exception as e:
-                import traceback
-                print("\n=== CAMERA CRASH LOG ===")
-                traceback.print_exc()
-                print("========================\n")
-                time.sleep(0.05)
+                        success, raw_frame = self.cap.read()
+                        if not success or raw_frame is None:
+                            time.sleep(0.01)
+                            continue
+
+                        # 1. Flip the frame
+                        flipped_frame = cv2.flip(raw_frame, 1)
+
+                        # Deep memory copy to prevent frame collision
+                        rgb_frame = cv2.cvtColor(cv2.resize(flipped_frame, (320, 180)), cv2.COLOR_BGR2RGB).copy()
+                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+
+                        # 2. Run hand detection
+                        result = detector.detect(mp_image)
+
+                        # 3. Canvas Geometry Calculations
+                        cam_h, cam_w = raw_frame.shape[:2]
+                        scale = min(self.render_w / cam_w, self.render_h / cam_h)
+                        new_w, new_h = int(cam_w * scale), int(cam_h * scale)
+                        need_shape = (self.render_h, self.render_w, 3)
+                        if self._canvas_buf is None or self._canvas_buf.shape != need_shape:
+                            self._canvas_buf = np.zeros(need_shape, dtype=np.uint8)
+
+                        canvas = self._canvas_buf
+                        canvas[:] = 0
+                        y_off, x_off = (self.render_h - new_h) // 2, (self.render_w - new_w) // 2
+                        canvas[y_off:y_off + new_h, x_off:x_off + new_w] = cv2.resize(flipped_frame, (new_w, new_h))
+
+                        raw_lms = None
+                        if result.hand_landmarks and (
+                                not hasattr(result, 'handedness') or result.handedness[0][0].score > 0.60):
+                            raw_lms = result.hand_landmarks[0]
+
+                        if raw_lms:
+                            self.is_hand_visible = True
+                            stable_lms = self.stabilizer.stabilize(raw_lms)
+                            self.kinematics.update(stable_lms)
+                            geo = HandGeometry.from_landmarks(stable_lms)
+                            draw_skeleton(canvas[y_off:y_off + new_h, x_off:x_off + new_w], stable_lms)
+
+                            ex = self.current_exercise
+                            step = 0
+                            if ex == "SQUEEZE":
+                                step = 0 if self.sq_state == "WAITING_FOR_FIST" else 1
+                            elif ex == "THUMB":
+                                step = self.curr_thumb_idx
+                            elif ex == "WIPER":
+                                step = 0 if self.wiper_state == "WAITING_FOR_LEFT" else 1
+                            elif ex == "FLIP":
+                                step = 0 if self.flip_state == "WAITING_FOR_UP" else 1
+                            elif ex == "TABLETOP":
+                                step = 0 if self.table_state == "WAITING_FOR_FIST" else 1
+                            elif ex == "SCISSOR":
+                                step = 0 if self.scissor_state == "WAITING_FOR_RELAX" else 1
+                            elif ex == "HOOK":
+                                step = 0 if self.hook_state == "WAITING_FOR_RELAX" else 1
+                            elif ex == "WRIST":
+                                step = 0 if self.wrist_state == "WAITING_FOR_UP" else 1
+                            elif ex == "PIANO":
+                                step = self.curr_piano_idx
+                            elif ex == "HITCH":
+                                step = 0 if self.hitch_state == "WAITING_FOR_FIST" else 1
+
+                            raw_acc = get_movement_accuracy(ex, step, 0, stable_lms)
+                            if not hasattr(self, 'smooth_acc'): self.smooth_acc = raw_acc
+                            self.smooth_acc = int(0.60 * raw_acc + 0.40 * self.smooth_acc)
+                            self.current_accuracy = self.smooth_acc
+
+                            posture_correct = raw_acc >= 70
+                            state_attr_map = {"SQUEEZE": "sq_state", "TABLETOP": "table_state"}
+                            state_attr = state_attr_map.get(ex, f"{ex.lower()}_state")
+                            current_state = getattr(self, state_attr, "") if ex not in (
+                            "THUMB", "PIANO") else f"STEP_{step}"
+
+                            is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
+                                current_state=current_state,
+                                current_lang=getattr(self, 'current_lang', 'EN'),
+                                hand_visible=True
+                            )
+
+                            if is_locked:
+                                self.hold_start_time = 0
+                                self.coach_msg = fatigue_msg
+                                self.coach_msg_type = fatigue_color
+                            else:
+                                if posture_correct:
+                                    self.rep_acc_sum += raw_acc
+                                    self.rep_acc_frames += 1
+                                    self._process_timers()
+
+                                    lang = getattr(self, 'current_lang', 'EN')
+                                    self.coach_msg = LANG[lang].get("coach_hold_steady", "Hold steady")
+                                    self.coach_msg_type = "good"
+                                else:
+                                    self.hold_start_time = 0
+                                    lang = getattr(self, 'current_lang', 'EN')
+
+                                    result_coach = self.coach_engine.get_feedback(ex, step, geo, self.kinematics)
+                                    if result_coach is not None:
+                                        coach_key, coach_sev = result_coach
+                                        self.coach_msg = LANG[lang].get(coach_key, coach_key)
+                                        self.coach_msg_type = coach_sev
+
+                                        if time.time() - getattr(self, "last_spoken_time", 0) > 4.0:
+                                            try:
+                                                from audio import speak_message
+                                                speak_message(self.coach_msg, lang)
+                                                self.last_spoken_time = time.time()
+                                            except Exception as e:
+                                                print(f"Audio Error: {e}")
+
+                                if fatigue_msg:
+                                    self.coach_msg = fatigue_msg
+                                    self.coach_msg_type = fatigue_color
+                        else:
+                            self.is_hand_visible = False
+                            if hasattr(self, 'fatigue_detector'):
+                                is_locked, fatigue_msg, fatigue_color = self.fatigue_detector.check_fatigue(
+                                    current_state="NO_HAND",
+                                    current_lang=getattr(self, 'current_lang', 'EN'),
+                                    hand_visible=False
+                                )
+                                if is_locked:
+                                    self.coach_msg = fatigue_msg
+                                    self.coach_msg_type = fatigue_color
+                            self.hold_start_time = 0
+
+                        self._draw_ui(canvas)
+                        pil_img = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
+
+                        if self.frame_queue.full():
+                            try:
+                                self.frame_queue.get_nowait()
+                            except queue.Empty:
+                                pass
+                        self.frame_queue.put_nowait(pil_img)
+
+                    except Exception as e:
+                        print("\n=== FRAME PROCESSING ITERATION ERROR ===")
+                        traceback.print_exc()
+                        time.sleep(0.01)
+
+        except Exception as e:
+            print(f"[FATAL AI ENGINE ERROR] {e}")
+            traceback.print_exc()
+
+        finally:
+            # This is completely outside the while loop and out of the with context manager.
+            # It executes EXACTLY ONCE when the thread drops execution completely.
+            if self.cap is not None:
+                print("[SYSTEM] Safely releasing webcam hardware...")
+                try:
+                    self.cap.release()
+                except Exception as release_error:
+                    print(f"[SYSTEM ERROR] Webcam hardware extraction failure: {release_error}")
+                self.cap = None
+            print("[SYSTEM] Camera loop thread completely stopped.")
 
 # =============================================================================
 # BOOT SEQUENCE (MUST BE FLUSH AGAINST THE LEFT WALL)
@@ -856,7 +916,8 @@ if __name__ == "__main__":
     # Temporarily bypass the stuck lockfile
     ensure_single_instance()
 
-    prewarm_libs()
+    # DISABLED: prewarm_libs() to stop C++ from crashing in the background
+    # prewarm_libs()
     root = tk.Tk()
     try:
         root.iconbitmap(resource_path(os.path.join('assets', 'rehab.ico')))
