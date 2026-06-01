@@ -216,15 +216,34 @@ class GestureScore(NamedTuple):
 
 # ── 4.1  Open / Close Fist ──────────────────────────────────────────────────
 
-def _score_squeeze_closed(geo: HandGeometry) -> GestureScore:
+def _score_squeeze_closed(geo: HandGeometry, lms: list) -> GestureScore:
     """
-    Full fist. Requires ALL four fingers deeply curled.
-    v3: center raised 0.62→0.75 so an open hand (curl≈0.1–0.3) scores LOW.
-    Previously open hands were scoring ~60–65% which was above the 70% trigger.
+    Full fist. Uses two methods:
+    1. Standard PIP curl (for fists in the air).
+    2. Table-Top Fallback: Measures distance from fingertips to wrist. If the hand
+       is compressed (tips are near the wrist), it is a fist, even if the table
+       blocks the fingers from curling deeply.
     """
+    # Method 1: Standard joint curl
     avg_curl = statistics.mean(geo.finger_curl)
-    score = _sigmoid(avg_curl, 0.75, 16.0)
-    return GestureScore(int(score * 100))
+    curl_score = _sigmoid(avg_curl, 0.70, 16.0)  # Loosened slightly
+
+    # Method 2: Table-Top Compression Measurement
+    tip_dists = []
+    for tip in [LI.INDEX_TIP, LI.MIDDLE_TIP, LI.RING_TIP, LI.PINKY_TIP]:
+        tip_dists.append(_d2(lms[tip], lms[LI.WRIST]) / geo.palm_size)
+
+    avg_tip_dist = statistics.mean(tip_dists)
+
+    # Normal open hand: tips are ~2.0 palm sizes away from the wrist.
+    # Fist resting on table: tips are compressed to ~0.7 to 1.1 palm sizes.
+    # The smaller the distance, the closer it is to 100% score.
+    tuck_score = 1.0 - _sigmoid(avg_tip_dist, 1.15, 12.0)
+
+    # The AI takes whichever score is higher, guaranteeing it works in the air AND on the table
+    final_score = max(curl_score, tuck_score)
+
+    return GestureScore(int(final_score * 100))
 
 
 def _score_squeeze_open(geo: HandGeometry) -> GestureScore:
@@ -489,7 +508,8 @@ def get_movement_accuracy(
     geo = HandGeometry.from_landmarks(lms)
 
     if exercise_name == "SQUEEZE":
-        return (_score_squeeze_closed(geo) if current_step == 0
+        # Pass lms so the closed fist can measure fingertip-to-wrist distance
+        return (_score_squeeze_closed(geo, lms) if current_step == 0
                 else _score_squeeze_open(geo)).accuracy
 
     elif exercise_name == "THUMB":
@@ -704,23 +724,24 @@ def generate_clinical_insights(history: dict, lang: str = "EN") -> list[str]:
 
 
 def evaluate_adaptive_difficulty(
-    history: dict,
-    is_weak: bool = False,
-    lang: str = "EN",
+        history: dict,
+        is_weak: bool = False,
+        lang: str = "EN",
 ) -> tuple[int, dict, str]:
-    s    = 1 if is_weak else 3
+    s = 1 if is_weak else 3
 
     # PERFECTED BASE GOALS
-    base = {"squeeze":[s,20],"thumb":[s,20],"wiper":[s,15],"flip":[s,15], "tabletop":[s,15],"scissor":[s+1,15]
-        ,"hook":[s,15],"wrist":[s,15],"piano":[s,20],"hitch":[s,10]}
+    base = {"squeeze": [s, 20], "thumb": [s, 20], "wiper": [s, 15], "flip": [s, 15], "tabletop": [s, 15],
+            "scissor": [s + 1, 15]
+        , "hook": [s, 15], "wrist": [s, 15], "piano": [s, 20], "hitch": [s, 10]}
 
     if not history:
         return (0, base,
                 "AI Baseline: New patient profile created."
                 if lang == "EN" else "AI Baseline: สร้างโปรไฟล์ผู้ป่วยใหม่")
 
-    today    = datetime.now()
-    last_7   = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+    today = datetime.now()
+    last_7 = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
     past_days = sorted([d for d in last_7 if d in history])
 
     done, days = 0, 0
@@ -728,13 +749,13 @@ def evaluate_adaptive_difficulty(
         if d in history:
             # PERFECTED SUMMATION LOOP KEYS
             done += sum(history[d].get(k, 0) for k in
-                ["squeeze_sets","thumb_sets","wiper_sets","flip_sets","tabletop_sets",
-                 "scissor_sets","hook_sets","wrist_sets","piano_sets","hitch_sets"])
+                        ["squeeze_sets", "thumb_sets", "wiper_sets", "flip_sets", "tabletop_sets",
+                         "scissor_sets", "hook_sets", "wrist_sets", "piano_sets", "hitch_sets"])
             days += 1
 
-    score     = int(min(done / (days * 18) * 100, 100)) if days > 0 else 0
+    score = int(min(done / (days * 18) * 100, 100)) if days > 0 else 0
     new_goals = {}
-    increased = decreased = False
+    increased = decreased = jumped = False
 
     # PERFECTED EXTRACTION KEYS
     ex_keys = [("squeeze", "squeeze_sets", "squeeze_acc"), ("thumb", "thumb_sets", "thumb_acc"),
@@ -744,29 +765,57 @@ def evaluate_adaptive_difficulty(
                ("piano", "piano_sets", "piano_acc"), ("hitch", "hitch_sets", "hitch_acc")]
 
     for prefix, set_key, acc_key in ex_keys:
-        target      = base[prefix][0]
+        target = base[prefix][0]
         consec_good = consec_poor = 0
+
         for d in past_days:
             sets_done = history[d].get(set_key, 0)
-            acc       = history[d].get(acc_key, 0)
+            acc = history[d].get(acc_key, 0)
+
             if sets_done == 0:
                 consec_good = consec_poor = 0
                 continue
-            if sets_done >= target and acc >= 80:
-                consec_good += 1; consec_poor = 0
-            elif sets_done < target or acc < 50:
-                consec_poor += 1; consec_good = 0
+
+            # --- THE NEW EFFORT RATIO ENGINE ---
+            effort_ratio = sets_done / max(1, target)
+
+            # 1. OVER-PERFORMANCE JUMP (e.g., did 5 sets when target was 3 -> Ratio 1.66)
+            # Skips the 2-day wait and instantly ranks them up.
+            if effort_ratio >= 1.5 and acc >= 75:
+                target = min(8, target + 1)
+                consec_good = consec_poor = 0
+                jumped = True
+                increased = True
+
+            # 2. STANDARD SUCCESS (Met target safely) -> Waits for 2 consecutive days
+            elif effort_ratio >= 1.0 and acc >= 80:
+                consec_good += 1
+                consec_poor = 0
+                if consec_good >= 2:
+                    target = min(8, target + 1)
+                    consec_good = 0
+                    increased = True
+
+            # 3. FATIGUE / STRUGGLE (Missed target or low accuracy) -> Scales down after 2 days
+            elif effort_ratio < 1.0 or acc < 50:
+                consec_poor += 1
+                consec_good = 0
+                if consec_poor >= 2:
+                    target = max(1, target - 1)
+                    consec_poor = 0
+                    decreased = True
             else:
                 consec_good = consec_poor = 0
-            if consec_good >= 2:
-                target = min(8, target + 1); consec_good = 0; increased = True
-            if consec_poor >= 2:
-                target = max(1, target - 1); consec_poor = 0; decreased = True
+
         new_goals[prefix] = [target, base[prefix][1]]
 
-    if increased:
-        reason = ("AI Adaptation: Goals increased due to high performance."
-                  if lang == "EN" else "AI Adaptation: เพิ่มเป้าหมายเนื่องจากประสิทธิภาพสูง")
+    # Determine XAI diagnostic reason
+    if jumped:
+        reason = ("AI Adaptation: Target increased instantly due to massive over-performance."
+                  if lang == "EN" else "AI Adaptation: เพิ่มเป้าหมายทันทีเนื่องจากผู้ป่วยทำผลงานได้เกินขีดจำกัดมาก")
+    elif increased:
+        reason = ("AI Adaptation: Goals increased due to consistent high performance."
+                  if lang == "EN" else "AI Adaptation: เพิ่มเป้าหมายเนื่องจากทำผลงานได้ดีอย่างสม่ำเสมอ")
     elif decreased:
         reason = ("AI Adaptation: Goals reduced to prevent muscle fatigue."
                   if lang == "EN" else "AI Adaptation: ลดเป้าหมายเพื่อป้องกันกล้ามเนื้อล้า")
