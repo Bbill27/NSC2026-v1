@@ -655,7 +655,7 @@ class RehabApp:
         # --- TRUE LIMIT TRACKING ---
         # Allow the numbers to freely exceed the goal to collect maximum adaptive data
         # It will cleanly display actual record vs limit (e.g., 4/3)
-        current_set_display = sets + 1
+        current_set_display = sets
         current_rep_display = reps
 
         # Hardcoded foolproof translations
