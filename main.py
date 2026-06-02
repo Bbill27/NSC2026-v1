@@ -97,7 +97,9 @@ class RehabApp:
         self._overlay_buf = None
 
         # Session Variables
-        self.current_exercise = "SQUEEZE"
+        # --- DOCTOR PRESCRIPTION LOCK ---
+        self.prescribed_exercises = ["SQUEEZE", "TABLETOP", "PIANO","SCISSOR", "WIPER", "WRIST"]
+        self.current_exercise = self.prescribed_exercises[0]
         self.last_timestamp_ms = 0
         self.hold_duration = 0.5
         self.show_celebration = False
@@ -202,8 +204,16 @@ class RehabApp:
                 play_menu_click_sound()
             except Exception:
                 pass
-            idx = min(event.x // u['btn_w'], len(self._EXERCISES) - 1)
-            self.current_exercise = self._EXERCISES[idx][0]
+
+            # Map the click ONLY to the prescribed list!
+            prescribed = getattr(self, 'prescribed_exercises', [e[0] for e in self._EXERCISES])
+
+            # Block clicks on empty space if there are fewer tabs than screen width
+            if (event.x // u['btn_w']) >= len(prescribed):
+                return
+
+            idx = min(event.x // u['btn_w'], len(prescribed) - 1)
+            self.current_exercise = prescribed[idx]
             self.hold_start_time = 0
             self.last_correct_time = time.time()
 
