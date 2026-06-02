@@ -210,7 +210,7 @@ def _ensure_fonts():
     from PIL import ImageFont
     _FONTS_LOADED = True
     for name, path, size in [
-        ("tab",   "tahomabd.ttf", 22),
+        ("tab",   "tahomabd.ttf", 26),
         ("large", "tahomabd.ttf", 36),
         ("small", "tahomabd.ttf", 20),
         ("coach", "tahomabd.ttf", 28),
@@ -1178,9 +1178,11 @@ def draw_dashboard(app, canvas):
     # Use the actual camera detection boolean from main.py instead of the broken 5-second timer
     hand_visible = getattr(app, 'is_hand_visible', False)
 
-    exs = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
+    exs_all = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
+    prescribed = getattr(app, 'prescribed_exercises', exs_all)
+
     try:
-        active_idx = exs.index(app.current_exercise)
+        active_idx = prescribed.index(app.current_exercise)
     except:
         active_idx = 0
 
@@ -1193,7 +1195,8 @@ def draw_dashboard(app, canvas):
     _blend_rect(canvas, np, ax1, 4, ax2, top_h - 4, (0, 168, 130), alpha=0.90)
     canvas[top_h - 3:top_h, ax1:ax2] = (0, 212, 170)
 
-    for i in range(1, 10):  # <-- Changed from 6 to 10
+    # Only draw dividers for the prescribed exercises
+    for i in range(1, len(prescribed)):
         sx = i * tab_w
         canvas[8:top_h - 8, sx:sx + 1] = (46, 63, 110)
 
@@ -1204,12 +1207,18 @@ def draw_dashboard(app, canvas):
     img_pil = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img_pil)
 
-    labels = [t.get(f"ex_{i + 1}", str(i + 1)) for i in range(10)]
-    for i, text in enumerate(labels):
+    # Only draw text labels for prescribed exercises
+    for i, ex_code in enumerate(prescribed):
         color = (255, 255, 255) if i == active_idx else (130, 155, 195)
-        # Abbreviate long names so they fit in the smaller tabs
-        if len(text) > 10: text = text[:8] + ".."
-        _draw_centered_text(draw, i * tab_w + tab_w / 2, top_h / 2, text, f_tiny, color, f"tab_{i}_{text}")
+
+        # Find original index to get the right translation
+        orig_idx = exs_all.index(ex_code)
+        text = t.get(f"ex_{orig_idx + 1}", ex_code)
+
+        # --- REMOVED TRUNCATION ---
+        # Draw the full text string since we now have plenty of horizontal space
+        # Changed f_tiny to f_tab to make the text larger and bold!
+        _draw_centered_text(draw, i * tab_w + tab_w / 2, top_h / 2, text, f_tab, color, f"tab_{i}_{text}")
 
     if not hand_visible:
         gx1, gy1 = w // 4, top_h + 24
