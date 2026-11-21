@@ -42,16 +42,19 @@ from logic import generate_clinical_insights, evaluate_adaptive_difficulty
 # =============================================================================
 # 2. DESIGN TOKENS & COLOR PALETTE
 # =============================================================================
-BG_COLOR       = "#0f1623"
-SURFACE_COLOR  = "#1c2540"
-SURFACE_ALT    = "#243052"
-BORDER_COLOR   = "#2e3f6e"
-ACCENT_COLOR   = "#00d4aa"
-ACCENT_DIM     = "#00a882"
-DANGER_COLOR   = "#ff4d6d"
-TEXT_COLOR     = "#e8edf5"
-MUTED_TEXT     = "#6b7fa3"
-HIGHLIGHT_TEXT = "#ffffff"
+# Light "hospital" palette (shared with theme.py). ACCENT_DIM is the normal button
+# colour and ACCENT_COLOR is the darker hover colour; HIGHLIGHT_TEXT is heading ink.
+BG_COLOR       = "#eef3f8"
+SURFACE_COLOR  = "#ffffff"
+SURFACE_ALT    = "#e3edf7"
+BORDER_COLOR   = "#cfdbe8"
+ACCENT_COLOR   = "#084f8a"
+ACCENT_DIM     = "#0a66b2"
+DANGER_COLOR   = "#d64545"
+TEXT_COLOR     = "#1b2b3c"
+MUTED_TEXT     = "#5a6b7e"
+HIGHLIGHT_TEXT = "#0b2e4f"
+SUCCESS_COLOR  = "#0f9d6e"
 
 
 # =============================================================================
@@ -59,14 +62,21 @@ HIGHLIGHT_TEXT = "#ffffff"
 # =============================================================================
 LANG = {
     "EN": {
-        "title": "NSC Medical Suite",
-        "subtitle": "Clinical Rehabilitation System",
+        "title": "CerebroMotion",
+        "subtitle": "Hand Rehabilitation at Home",
         "btn_loading": "LOADING ENGINE...",
         "btn_start": "START THERAPY SESSION",
         "btn_opening": "OPENING CAMERA...",
         "btn_cam_error": "CAMERA ERROR - TRY AGAIN",
         "btn_progress": "VIEW PROGRESS",
-        "btn_tutorial": "TUTORIAL GUIDE",
+        "btn_tutorial": "INTERACTIVE GUIDE",
+        "btn_game": "FINGER PIANO GAME",
+        "btn_video": "Watch intro video",
+        "rx_title": "Today's prescription",
+        "hello": "Hello",
+        "rx_done": "done",
+        "rx_sets": "sets",
+        "rx_empty": "Press START to begin",
         "btn_settings": "SETTINGS",
         "btn_credits": "CREDITS",
         "btn_back": "BACK TO MENU",
@@ -134,14 +144,21 @@ LANG = {
         "thumb_names": ["INDEX", "MIDDLE", "RING", "PINKY"],
         },
     "TH": {
-        "title": "ชุดโปรแกรมการแพทย์ NSC",
-        "subtitle": "ระบบฟื้นฟูสมรรถภาพทางการแพทย์",
+        "title": "เซรีโบรโมชัน",
+        "subtitle": "ฟื้นฟูมือที่บ้าน ปลอดภัย ใช้งานง่าย",
         "btn_loading": "กำลังเตรียมระบบ AI...",
         "btn_start": "เริ่มการบำบัด",
         "btn_opening": "กำลังเชื่อมต่อกล้อง...",
         "btn_cam_error": "ข้อผิดพลาดของกล้อง - ลองอีกครั้ง",
         "btn_progress": "ประวัติและผลการบำบัด",
-        "btn_tutorial": "คู่มือการใช้งาน",
+        "btn_tutorial": "คู่มือฝึกแบบโต้ตอบ",
+        "btn_game": "เกมเปียโนนิ้ว",
+        "btn_video": "ดูวิดีโอแนะนำ",
+        "rx_title": "แผนการฝึกวันนี้",
+        "hello": "สวัสดี",
+        "rx_done": "ครบแล้ว",
+        "rx_sets": "เซ็ต",
+        "rx_empty": "กดเริ่มการบำบัดได้เลย",
         "btn_settings": "ตั้งค่าระบบ",
         "btn_credits": "รายชื่อผู้พัฒนา",
         "btn_back": "กลับสู่เมนูหลัก",
@@ -216,7 +233,8 @@ def _ensure_fonts():
         ("coach", "tahomabd.ttf", 28),
         ("tiny",  "tahoma.ttf",   16),
     ]:
-        for candidate in (path, path.replace("bd", ""), ""):
+        for candidate in (path, path.replace("bd", ""),
+                          "/usr/share/fonts/opentype/tlwg/Loma-Bold.otf", "DejaVuSans-Bold.ttf", ""):
             try:
                 _FONTS[name] = ImageFont.truetype(candidate, size) if candidate else ImageFont.load_default()
                 break
@@ -334,6 +352,9 @@ def apply_language(app):
 
     app.btn_prog.config(text=t["btn_progress"])
     app.btn_tut.config(text=t["btn_tutorial"])
+    if hasattr(app, 'btn_game'):   app.btn_game.config(text=t["btn_game"])
+    if hasattr(app, 'btn_video'):  app.btn_video.config(text=t["btn_video"])
+    if hasattr(app, 'refresh_menu'): app.refresh_menu()
     app.btn_set.config(text=t["btn_settings"])
     app.btn_cred.config(text=t["btn_credits"])
     if hasattr(app, 'btn_ai_chat'): app.btn_ai_chat.config(text=t["btn_ai_chat"])
@@ -375,19 +396,20 @@ def contact_support():
 # 6. REUSABLE WIDGET BUILDERS
 # =============================================================================
 def _make_primary_btn(parent, text, command, font_obj, state="normal"):
+    GREEN, GREEN_HOVER = "#0b7d58", "#095f43"          # the one big call-to-action colour
     def _on_enter(e):
-        if btn["state"] == "normal": btn.config(bg=ACCENT_COLOR, fg=BG_COLOR)
+        if btn["state"] == "normal": btn.config(bg=GREEN_HOVER)
     def _on_leave(e):
-        if btn["state"] == "normal": btn.config(bg=ACCENT_DIM, fg=BG_COLOR)
+        if btn["state"] == "normal": btn.config(bg=GREEN)
     def _wrapped():
         try: audio.play_menu_click_sound()
         except Exception: pass
         command()
     btn = tk.Button(parent, text=text, font=font_obj,
-        bg=ACCENT_DIM if state == "normal" else SURFACE_ALT,
-        fg=BG_COLOR if state == "normal" else MUTED_TEXT,
+        bg=GREEN if state == "normal" else SURFACE_ALT,
+        fg="#ffffff" if state == "normal" else MUTED_TEXT,
         relief="flat", borderwidth=0, width=28, pady=13, cursor="hand2",
-        command=_wrapped, state=state, activebackground=ACCENT_COLOR, activeforeground=BG_COLOR)
+        command=_wrapped, state=state, activebackground=GREEN_HOVER, activeforeground="#ffffff")
     btn.bind("<Enter>", _on_enter)
     btn.bind("<Leave>", _on_leave)
     return btn
@@ -491,11 +513,11 @@ def init_tkinter_ui(app):
     app.root.configure(bg=BG_COLOR)
 
     # ── 8.1 Setup Fonts & Auth ──────────────────────────────────
-    title_font   = font.Font(family="Leelawadee UI", size=30, weight="bold")
-    sub_font     = font.Font(family="Leelawadee UI", size=12)
-    btn_font     = font.Font(family="Leelawadee UI", size=13, weight="bold")
-    label_font   = font.Font(family="Leelawadee UI", size=12, weight="bold")
-    small_font   = font.Font(family="Leelawadee UI", size=11)
+    title_font   = font.Font(family="Leelawadee UI", size=34, weight="bold")
+    sub_font     = font.Font(family="Leelawadee UI", size=14)
+    btn_font     = font.Font(family="Leelawadee UI", size=16, weight="bold")
+    label_font   = font.Font(family="Leelawadee UI", size=14, weight="bold")
+    small_font   = font.Font(family="Leelawadee UI", size=13)
     caption_font = font.Font(family="Leelawadee UI", size=9)
 
     load_user_settings(app)
@@ -548,6 +570,7 @@ def init_tkinter_ui(app):
                 users_data = json.load(f)
             if u in users_data and users_data[u]["password"] == p:
                 app.lbl_login_err.config(text="")
+                app.current_user = u
                 if app.var_remember.get():
                     with open(session_file, "w") as sf: json.dump({"is_logged_in": True, "username": u}, sf)
                 app.login_frame.place_forget()
@@ -563,34 +586,85 @@ def init_tkinter_ui(app):
     app.btn_login_submit.bind("<Leave>", lambda e: app.btn_login_submit.config(bg=SURFACE_ALT, fg=TEXT_COLOR))
     app.btn_login_submit.pack(fill="x", ipady=12)
 
-    # ── 8.3 Main Menu ───────────────────────────────────────────
+    # ── 8.3 Main Menu (hospital style) ──────────────────────────
     app.menu_frame = tk.Frame(app.root, bg=BG_COLOR)
-    brand_block = tk.Frame(app.menu_frame, bg=BG_COLOR)
-    brand_block.pack(pady=(50, 0))
-
-    tk.Frame(brand_block, bg=ACCENT_COLOR, height=3, width=60).pack(anchor="center", pady=(0, 10))
-    app.lbl_title = tk.Label(brand_block, font=title_font, fg=HIGHLIGHT_TEXT, bg=BG_COLOR)
-    app.lbl_title.pack()
-    app.lbl_subtitle = tk.Label(brand_block, font=sub_font, fg=MUTED_TEXT, bg=BG_COLOR)
-    app.lbl_subtitle.pack(pady=(4, 0))
-    tk.Frame(brand_block, bg=BORDER_COLOR, height=1, width=220).pack(anchor="center", pady=(12, 0))
-
-    btn_container = tk.Frame(app.menu_frame, bg=BG_COLOR)
-    btn_container.pack(pady=(36, 50))
     t = LANG[app.current_lang]
 
-    app.start_btn = _make_primary_btn(btn_container, t["btn_loading"], app.start_therapy, btn_font, state="disabled")
-    app.start_btn.pack(pady=(0, 6))
-    tk.Frame(btn_container, bg=BORDER_COLOR, height=1, width=300).pack(pady=10)
+    brand_row = tk.Frame(app.menu_frame, bg=BG_COLOR)
+    brand_row.pack(pady=(16, 0))
+    badge = tk.Canvas(brand_row, width=58, height=58, bg=BG_COLOR, highlightthickness=0)
+    badge.create_oval(2, 2, 56, 56, fill=ACCENT_DIM, outline="")
+    badge.create_rectangle(24, 13, 34, 45, fill="#ffffff", outline="")
+    badge.create_rectangle(13, 24, 45, 34, fill="#ffffff", outline="")
+    badge.pack(side="left", padx=(0, 16))
+    brand_txt = tk.Frame(brand_row, bg=BG_COLOR)
+    brand_txt.pack(side="left")
+    app.lbl_title = tk.Label(brand_txt, font=title_font, fg=HIGHLIGHT_TEXT, bg=BG_COLOR, anchor="w")
+    app.lbl_title.pack(anchor="w")
+    app.lbl_subtitle = tk.Label(brand_txt, font=sub_font, fg=MUTED_TEXT, bg=BG_COLOR, anchor="w")
+    app.lbl_subtitle.pack(anchor="w")
+    tk.Frame(app.menu_frame, bg=ACCENT_DIM, height=3, width=420).pack(pady=(10, 0))
 
-    app.btn_prog = _make_secondary_btn(btn_container, t["btn_progress"], app.show_dashboard, btn_font)
-    app.btn_prog.pack(pady=4)
-    app.btn_tut = _make_secondary_btn(btn_container, t["btn_tutorial"], app.show_coming_soon, btn_font)
-    app.btn_tut.pack(pady=4)
-    app.btn_set = _make_secondary_btn(btn_container, t["btn_settings"], app.show_settings, btn_font)
-    app.btn_set.pack(pady=4)
-    app.btn_cred = _make_secondary_btn(btn_container, t["btn_credits"], app.show_credits, btn_font)
-    app.btn_cred.pack(pady=4)
+    # Patient card + today's prescription (refreshed every time the menu is shown)
+    rx_card = tk.Frame(app.menu_frame, bg=SURFACE_COLOR, padx=24, pady=10,
+                       highlightbackground=BORDER_COLOR, highlightthickness=2)
+    rx_card.pack(pady=(14, 0), fill="x", padx=30)
+    app.lbl_hello = tk.Label(rx_card, font=label_font, fg=HIGHLIGHT_TEXT, bg=SURFACE_COLOR, anchor="w")
+    app.lbl_hello.pack(fill="x")
+    app.lbl_rx_title = tk.Label(rx_card, font=small_font, fg=MUTED_TEXT, bg=SURFACE_COLOR, anchor="w")
+    app.lbl_rx_title.pack(fill="x", pady=(0, 4))
+    app.rx_rows = tk.Frame(rx_card, bg=SURFACE_COLOR)
+    app.rx_rows.pack(fill="x")
+
+    def refresh_menu():
+        tt = LANG[app.current_lang]
+        user = getattr(app, "current_user", "") or ""
+        app.lbl_hello.config(text=f"{tt['hello']}{', ' + user if user else ''}")
+        app.lbl_rx_title.config(text=tt["rx_title"])
+        for w in app.rx_rows.winfo_children():
+            w.destroy()
+        exs_all = ["SQUEEZE", "THUMB", "WIPER", "FLIP", "TABLETOP", "SCISSOR", "HOOK", "WRIST", "PIANO", "HITCH"]
+        for ex in getattr(app, "prescribed_exercises", []):
+            goal = getattr(app, f"{ex.lower()}_goal", (3, 15))
+            sets = app.sets_data.get(ex, 0)
+            done = sets >= goal[0]
+            row = tk.Frame(app.rx_rows, bg=SURFACE_COLOR)
+            row.pack(fill="x", pady=1)
+            dot = tk.Canvas(row, width=26, height=26, bg=SURFACE_COLOR, highlightthickness=0)
+            if done:
+                dot.create_oval(2, 2, 24, 24, fill=SUCCESS_COLOR, outline="")
+                dot.create_line(7, 13, 11, 18, 19, 8, fill="#ffffff", width=3)
+            else:
+                dot.create_oval(3, 3, 23, 23, outline="#aab6c4", width=2)
+            dot.pack(side="left", padx=(0, 12))
+            tk.Label(row, text=tt.get(f"ex_{exs_all.index(ex) + 1}", ex), font=small_font, fg=TEXT_COLOR,
+                     bg=SURFACE_COLOR, anchor="w").pack(side="left")
+            tk.Label(row, text=f"{min(sets, goal[0])}/{goal[0]} {tt['rx_sets']}", font=small_font,
+                     fg=SUCCESS_COLOR if done else MUTED_TEXT, bg=SURFACE_COLOR).pack(side="right")
+
+    app.refresh_menu = refresh_menu
+    app.menu_frame.bind("<Map>", lambda e: refresh_menu())
+
+    btn_container = tk.Frame(app.menu_frame, bg=BG_COLOR)
+    btn_container.pack(pady=(14, 14))
+    app.menu_buttons = btn_container
+
+    app.start_btn = _make_primary_btn(btn_container, t["btn_loading"], app.start_therapy, btn_font, state="disabled")
+    app.start_btn.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 8))
+
+    BW = 19
+    app.btn_tut = _make_secondary_btn(btn_container, t["btn_tutorial"], lambda: app.start_mode("tutorial"), btn_font, width=BW)
+    app.btn_tut.config(state="disabled")
+    app.btn_tut.grid(row=1, column=0, padx=4, pady=4, sticky="ew")
+    app.btn_game = _make_secondary_btn(btn_container, t["btn_game"], lambda: app.start_mode("piano"), btn_font, width=BW)
+    app.btn_game.config(state="disabled")
+    app.btn_game.grid(row=1, column=1, padx=4, pady=4, sticky="ew")
+    app.btn_prog = _make_secondary_btn(btn_container, t["btn_progress"], app.show_dashboard, btn_font, width=BW)
+    app.btn_prog.grid(row=2, column=0, padx=4, pady=4, sticky="ew")
+    app.btn_set = _make_secondary_btn(btn_container, t["btn_settings"], app.show_settings, btn_font, width=BW)
+    app.btn_set.grid(row=2, column=1, padx=4, pady=4, sticky="ew")
+    app.btn_cred = _make_secondary_btn(btn_container, t["btn_credits"], app.show_credits, btn_font, width=BW)
+    app.btn_cred.grid(row=3, column=0, columnspan=2, padx=4, pady=4, sticky="ew")
 
     # ── 8.4 Settings Frame ──────────────────────────────────────
     app.settings_frame = tk.Frame(app.root, bg=BG_COLOR, width=app.render_w, height=app.render_h)
@@ -642,7 +716,7 @@ def init_tkinter_ui(app):
     tk.Frame(card, bg=BORDER_COLOR, height=1).grid(row=4, column=0, columnspan=2, sticky="ew", pady=4)
     app.lbl_help = tk.Label(card, font=label_font, fg=TEXT_COLOR, bg=SURFACE_COLOR, anchor="w", width=18)
     app.lbl_help.grid(row=5, column=0, sticky="w", **ROW_PAD)
-    app.btn_help = tk.Button(card, font=label_font, bg=DANGER_COLOR, fg=HIGHLIGHT_TEXT, relief="flat", borderwidth=0, padx=18, pady=6, cursor="hand2", command=contact_support, activebackground="#ff6b85", activeforeground=HIGHLIGHT_TEXT)
+    app.btn_help = tk.Button(card, font=label_font, bg=DANGER_COLOR, fg="#ffffff", relief="flat", borderwidth=0, padx=18, pady=6, cursor="hand2", command=contact_support, activebackground="#e66a6a", activeforeground="#ffffff")
     app.btn_help.grid(row=5, column=1, sticky="w", **ROW_PAD)
     tk.Frame(card, bg=BORDER_COLOR, height=1).grid(row=6, column=0, columnspan=2, sticky="ew", pady=(20, 10))
 
@@ -659,7 +733,7 @@ def init_tkinter_ui(app):
         app.menu_frame.place_forget()
         app.login_frame.place(x=0, y=0, relwidth=1, relheight=1)
 
-    app.btn_logout = tk.Button(card, text="LOG OUT", font=label_font, bg=BG_COLOR, fg=DANGER_COLOR, relief="flat", borderwidth=0, cursor="hand2", command=do_logout, activebackground=DANGER_COLOR, activeforeground=HIGHLIGHT_TEXT)
+    app.btn_logout = tk.Button(card, text="LOG OUT", font=label_font, bg=BG_COLOR, fg=DANGER_COLOR, relief="flat", borderwidth=0, cursor="hand2", command=do_logout, activebackground=DANGER_COLOR, activeforeground="#ffffff")
     app.btn_logout.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(0, 10), ipady=5)
 
     # ── 8.5 Video Frame ─────────────────────────────────────────
@@ -859,7 +933,11 @@ def init_tkinter_ui(app):
     app.btn_license.pack()
 
     # ── 8.8 Coming Soon Frame ───────────────────────────────────
-    from tutorial import TutorialPlayer
+    try:
+        from tutorial import TutorialPlayer
+    except Exception as exc:          # moviepy missing -> the intro video is simply hidden
+        print(f"[UI] Intro video unavailable: {exc}")
+        TutorialPlayer = None
 
     app.coming_soon_frame = tk.Frame(app.root, bg=BG_COLOR, width=app.render_w, height=app.render_h)
     app.coming_soon_frame.pack_propagate(False)
@@ -867,7 +945,8 @@ def init_tkinter_ui(app):
     tut_topbar.pack(fill="x", padx=40, pady=(24, 0))
 
     def wrap_tut_back():
-        app.tut_player.stop()
+        if hasattr(app, "tut_player"):
+            app.tut_player.stop()
         app.hide_coming_soon()
 
     app.btn_tut_back = _make_ghost_btn(tut_topbar, t["btn_back"], wrap_tut_back, label_font)
@@ -877,7 +956,11 @@ def init_tkinter_ui(app):
     app.lbl_tut_1.pack(pady=(20, 0))
     tk.Frame(app.coming_soon_frame, bg=ACCENT_COLOR, height=2, width=44).pack(pady=(6, 10))
     app.lbl_tut_2 = tk.Label(app.coming_soon_frame)
-    app.tut_player = TutorialPlayer(app.coming_soon_frame)
+    if TutorialPlayer is not None:
+        app.tut_player = TutorialPlayer(app.coming_soon_frame)
+        app.btn_video = _make_secondary_btn(app.menu_buttons, t["btn_video"], app.show_coming_soon, btn_font, width=19)
+        app.btn_cred.grid_configure(columnspan=1)
+        app.btn_video.grid(row=3, column=1, padx=4, pady=4, sticky="ew")
 
     apply_language(app)
     # ── 8.9 Boot Sequence Validation ────────────────────────────
@@ -887,7 +970,9 @@ def init_tkinter_ui(app):
         try:
             with open(app.session_file, "r") as f:
                 sess = json.load(f)
-                if sess.get("is_logged_in"): auto_login = True
+                if sess.get("is_logged_in"):
+                    auto_login = True
+                    app.current_user = sess.get("username", "")
         except Exception: pass
 
     if auto_login: app.menu_frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -906,7 +991,7 @@ def _add_progress_chart(app, parent, history):
     labels = [(today - timedelta(days=i)).strftime("%d/%m")    for i in range(6, -1, -1)]
 
     exercise_keys = [
-        ("squeeze_sets", "#00d4aa", t.get("ex_1", "1")),
+        ("squeeze_sets", "#0a66b2", t.get("ex_1", "1")),
         ("thumb_sets", "#f59e0b", t.get("ex_2", "2")),
         ("wiper_sets", "#3b82f6", t.get("ex_3", "3")),
         ("flip_sets", "#8b5cf6", t.get("ex_4", "4")),
@@ -937,10 +1022,10 @@ def _add_progress_chart(app, parent, history):
     ax.set_ylabel(t.get("chart_y", "Sets"), color=MUTED_TEXT, fontsize=9)
     ax.tick_params(colors=MUTED_TEXT, labelsize=9)
     ax.spines[:].set_color(BORDER_COLOR)
-    ax.grid(axis="y", color="#2e3f6e", linestyle="--", linewidth=0.7)
+    ax.grid(axis="y", color=BORDER_COLOR, linestyle="--", linewidth=0.9)
 
-    legend = ax.legend(loc="upper left", fontsize=legend_font, framealpha=0.25, labelcolor="white", ncol=legend_cols)
-    legend.get_frame().set_facecolor(BG_COLOR)
+    legend = ax.legend(loc="upper left", fontsize=legend_font, framealpha=0.25, labelcolor=TEXT_COLOR, ncol=legend_cols)
+    legend.get_frame().set_facecolor(SURFACE_COLOR)
     fig.tight_layout(pad=1.6)
 
     chart_frame = tk.Frame(parent, bg=BG_COLOR)
@@ -968,7 +1053,7 @@ def populate_dashboard(app):
     insight_card.pack(fill="x", pady=(0, 14))
     insight_header = tk.Frame(insight_card, bg=SURFACE_COLOR)
     insight_header.pack(fill="x", pady=(0, 6))
-    tk.Label(insight_header, text=t['ai_insight'], font=("Leelawadee UI", 11, "bold"), fg="#38bdf8", bg=SURFACE_COLOR, anchor="w").pack(side="left")
+    tk.Label(insight_header, text=t['ai_insight'], font=("Leelawadee UI", 11, "bold"), fg=ACCENT_DIM, bg=SURFACE_COLOR, anchor="w").pack(side="left")
 
     for insight in generate_clinical_insights(history, app.current_lang):
         row = tk.Frame(insight_card, bg=SURFACE_COLOR); row.pack(fill="x", pady=2)
@@ -1074,7 +1159,7 @@ def show_session_summary(app):
     t = LANG[app.current_lang]
 
     if avg_acc >= 85:   q_text, q_color = t.get("acc_excel", "EXCELLENT"), ACCENT_COLOR
-    elif avg_acc >= 60: q_text, q_color = t.get("acc_good", "GOOD"), "#f59e0b"
+    elif avg_acc >= 60: q_text, q_color = t.get("acc_good", "GOOD"), "#d98200"
     else:               q_text, q_color = t.get("acc_needs", "NEEDS WORK"), DANGER_COLOR
 
     summary_win = tk.Toplevel(app.root)
@@ -1144,8 +1229,9 @@ def _blend_rect(img_arr, np, x1, y1, x2, y2, fill_rgb, alpha=0.72):
 # =============================================================================
 def recalc_ui_metrics(app):
     w, h = app.render_w, app.render_h
+    n_tabs = max(4, len(getattr(app, "prescribed_exercises", [None] * 10)))
     app.ui = {
-        "btn_w": w // 10, "btn_h": max(60, h // 11),
+        "btn_w": w // n_tabs, "btn_h": max(60, h // 11),
         "menu_w": 190, "menu_h": 45,  # Increased width to comfortably fit the new Thai text
         "reset_w": 140, "reset_h": 45,
     }
@@ -1187,29 +1273,29 @@ def draw_dashboard(app, canvas):
         active_idx = 0
 
     top_h = u["btn_h"]
-    _blend_rect(canvas, np, 0, 0, w, top_h, (10, 18, 30), alpha=0.82)
+    _blend_rect(canvas, np, 0, 0, w, top_h, (255, 255, 255), alpha=0.96)
 
     tab_w = u["btn_w"]
     ax1 = active_idx * tab_w + 4
     ax2 = ax1 + tab_w - 8
-    _blend_rect(canvas, np, ax1, 4, ax2, top_h - 4, (0, 168, 130), alpha=0.90)
-    canvas[top_h - 3:top_h, ax1:ax2] = (0, 212, 170)
+    _blend_rect(canvas, np, ax1, 4, ax2, top_h - 4, (178, 102, 10), alpha=0.95)   # BGR of #0a66b2
+    canvas[top_h - 3:top_h, ax1:ax2] = (138, 79, 8)
 
     # Only draw dividers for the prescribed exercises
     for i in range(1, len(prescribed)):
         sx = i * tab_w
-        canvas[8:top_h - 8, sx:sx + 1] = (46, 63, 110)
+        canvas[8:top_h - 8, sx:sx + 1] = (232, 219, 207)
 
     bot_y = h - 95
-    _blend_rect(canvas, np, 0, bot_y, w, h, (10, 18, 30), alpha=0.85)
-    canvas[bot_y:bot_y + 1, :] = (46, 63, 110)
+    _blend_rect(canvas, np, 0, bot_y, w, h, (255, 255, 255), alpha=0.93)
+    canvas[bot_y:bot_y + 1, :] = (232, 219, 207)
 
     img_pil = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img_pil)
 
     # Only draw text labels for prescribed exercises
     for i, ex_code in enumerate(prescribed):
-        color = (255, 255, 255) if i == active_idx else (130, 155, 195)
+        color = (255, 255, 255) if i == active_idx else (27, 43, 60)
 
         # Find original index to get the right translation
         orig_idx = exs_all.index(ex_code)
@@ -1224,7 +1310,7 @@ def draw_dashboard(app, canvas):
         gx1, gy1 = w // 4, top_h + 24
         gx2, gy2 = w - w // 4, h - 110
         pulse_v = _pulse(now)
-        line_col = (0, int(180 + pulse_v * 75), int(140 + pulse_v * 60))
+        line_col = (int(10 + pulse_v * 30), int(102 + pulse_v * 60), 178)
         corner_len = 32
         for cx, cy, sx, sy in [(gx1, gy1, 1, 1), (gx2, gy1, -1, 1), (gx1, gy2, 1, -1), (gx2, gy2, -1, -1)]:
             draw.line([(cx, cy), (cx + sx * corner_len, cy)], fill=line_col, width=3)
@@ -1234,16 +1320,16 @@ def draw_dashboard(app, canvas):
         gw_, gh_ = _text_size(draw, guide_text, f_small, "guide_box")
         gcx, gcy = (gx1 + gx2) // 2, (gy1 + gy2) // 2
         _pil_rounded_fill(draw, gcx - gw_ / 2 - 14, gcy - gh_ / 2 - 8, gcx + gw_ / 2 + 14, gcy + gh_ / 2 + 8,
-                          fill=(10, 22, 36), radius=10)
-        _draw_centered_text(draw, gcx, gcy, guide_text, f_small, (0, 212, 170), "guide_box")
+                          fill=(255, 255, 255), radius=10)
+        _draw_centered_text(draw, gcx, gcy, guide_text, f_small, (10, 102, 178), "guide_box")
 
         warn_text = t["move_closer"]
         ww_, wh_ = _text_size(draw, warn_text, f_small, "move_closer")
         wx1, wy1 = 20, bot_y - wh_ - 30
         wx2, wy2 = wx1 + ww_ + 24, wy1 + wh_ + 14
-        _pil_rounded_fill(draw, wx1, wy1, wx2, wy2, fill=(60, 10, 20), radius=10)
-        _pil_rounded_outline(draw, wx1, wy1, wx2, wy2, outline=(255, 77, 109), width=2, radius=10)
-        _draw_centered_text(draw, (wx1 + wx2) / 2, (wy1 + wy2) / 2, warn_text, f_small, (255, 100, 120), "move_closer")
+        _pil_rounded_fill(draw, wx1, wy1, wx2, wy2, fill=(255, 240, 240), radius=10)
+        _pil_rounded_outline(draw, wx1, wy1, wx2, wy2, outline=(214, 69, 69), width=2, radius=10)
+        _draw_centered_text(draw, (wx1 + wx2) / 2, (wy1 + wy2) / 2, warn_text, f_small, (200, 50, 50), "move_closer")
 
     if ui_data.get("inst"):
         hold_pct = 0.0
@@ -1252,27 +1338,27 @@ def draw_dashboard(app, canvas):
         bar_w, bar_h = 400, 8
         bx = (w - bar_w) // 2
         by = bot_y + 75
-        _pil_rounded_fill(draw, bx, by, bx + bar_w, by + bar_h, fill=(36, 48, 76), radius=4)
+        _pil_rounded_fill(draw, bx, by, bx + bar_w, by + bar_h, fill=(207, 219, 232), radius=4)
         if hold_pct > 0:
-            _pil_rounded_fill(draw, bx, by, bx + int(bar_w * hold_pct), by + bar_h, fill=(0, 180, 220), radius=4)
+            _pil_rounded_fill(draw, bx, by, bx + int(bar_w * hold_pct), by + bar_h, fill=(10, 102, 178), radius=4)
 
         header = f"{ui_data['inst']}  ·  {ui_data['progress_text']}"
-        _draw_centered_text(draw, w / 2, bot_y + 42, header, f_large, (232, 237, 245), "hdr_" + header[:20])
+        _draw_centered_text(draw, w / 2, bot_y + 42, header, f_large, (11, 46, 79), "hdr_" + header[:20])
 
         btn_r = 10
         mx1, my1 = u["menu_x"], u["menu_y"]
         mx2, my2 = mx1 + u["menu_w"], my1 + u["menu_h"]
-        _pil_rounded_fill(draw, mx1, my1, mx2, my2, fill=(50, 38, 80), radius=btn_r)
-        _pil_rounded_outline(draw, mx1, my1, mx2, my2, outline=(120, 80, 180), width=2, radius=btn_r)
-        _draw_centered_text(draw, mx1 + u["menu_w"] / 2, my1 + u["menu_h"] / 2, t["hud_menu"], f_small, (200, 180, 255),
+        _pil_rounded_fill(draw, mx1, my1, mx2, my2, fill=(255, 255, 255), radius=btn_r)
+        _pil_rounded_outline(draw, mx1, my1, mx2, my2, outline=(214, 69, 69), width=3, radius=btn_r)
+        _draw_centered_text(draw, mx1 + u["menu_w"] / 2, my1 + u["menu_h"] / 2, t["hud_menu"], f_small, (200, 50, 50),
                             "hud_menu")
 
         rx1, ry1 = u["reset_x"], u["reset_y"]
         rx2, ry2 = rx1 + u["reset_w"], ry1 + u["reset_h"]
-        _pil_rounded_fill(draw, rx1, ry1, rx2, ry2, fill=(60, 30, 20), radius=btn_r)
-        _pil_rounded_outline(draw, rx1, ry1, rx2, ry2, outline=(160, 100, 60), width=2, radius=btn_r)
+        _pil_rounded_fill(draw, rx1, ry1, rx2, ry2, fill=(255, 255, 255), radius=btn_r)
+        _pil_rounded_outline(draw, rx1, ry1, rx2, ry2, outline=(217, 130, 0), width=3, radius=btn_r)
         _draw_centered_text(draw, rx1 + u["reset_w"] / 2, ry1 + u["reset_h"] / 2, t["hud_reset"], f_small,
-                            (255, 190, 120), "hud_reset")
+                            (176, 100, 0), "hud_reset")
 
         # ── 1. CHECK MEDICAL LOCKOUT STATUS ──
     is_locked = hasattr(app, 'fatigue_detector') and app.fatigue_detector.is_locked
@@ -1280,7 +1366,7 @@ def draw_dashboard(app, canvas):
     if is_locked:
         # ── 2. DRAW MASSIVE SAFETY LOCK SCREEN ──
         # Dim the entire camera area heavily with a dark red tint via PIL
-        draw.rectangle([0, int(top_h), int(w), int(bot_y)], fill=(40, 10, 15))
+        draw.rectangle([0, int(top_h), int(w), int(bot_y)], fill=(255, 244, 244))
 
         lock_msg = getattr(app, "coach_msg", "SAFETY PAUSE")
 
@@ -1290,12 +1376,12 @@ def draw_dashboard(app, canvas):
         lx2, ly2 = lx1 + lw_ + 100, ly1 + lh_ + 80
 
         # Draw red lock box
-        _pil_rounded_fill(draw, lx1, ly1, lx2, ly2, fill=(50, 10, 18), radius=16)
-        _pil_rounded_outline(draw, lx1, ly1, lx2, ly2, outline=(255, 77, 109), width=4, radius=16)
+        _pil_rounded_fill(draw, lx1, ly1, lx2, ly2, fill=(255, 255, 255), radius=16)
+        _pil_rounded_outline(draw, lx1, ly1, lx2, ly2, outline=(214, 69, 69), width=5, radius=16)
 
         # Pulse animation for the warning text
         pulse_v = _pulse(now)
-        text_color = (255, int(100 + pulse_v * 100), int(120 + pulse_v * 100))
+        text_color = (int(190 + pulse_v * 25), int(40 + pulse_v * 40), int(40 + pulse_v * 40))
         _draw_centered_text(draw, (lx1 + lx2) / 2, (ly1 + ly2) / 2, lock_msg, f_large, text_color,
                             f"lock_{lock_msg}")
 
@@ -1304,14 +1390,14 @@ def draw_dashboard(app, canvas):
         accuracy = getattr(app, "current_accuracy", 0)
         if hand_visible and accuracy > 0:
             if accuracy >= 85:
-                qual_text, qual_color = t.get("acc_excel", "EXCELLENT"), (0, 212, 170)
-                badge_bg, badge_brd = (0, 40, 32), (0, 160, 130)
+                qual_text, qual_color = t.get("acc_excel", "EXCELLENT"), (15, 140, 98)
+                badge_bg, badge_brd = (226, 246, 238), (15, 157, 110)
             elif accuracy >= 60:
-                qual_text, qual_color = t.get("acc_good", "GOOD"), (245, 158, 11)
-                badge_bg, badge_brd = (40, 30, 0), (180, 120, 0)
+                qual_text, qual_color = t.get("acc_good", "GOOD"), (176, 100, 0)
+                badge_bg, badge_brd = (255, 244, 224), (217, 130, 0)
             else:
-                qual_text, qual_color = t.get("acc_needs", "NEEDS WORK"), (255, 100, 120)
-                badge_bg, badge_brd = (50, 10, 18), (200, 50, 80)
+                qual_text, qual_color = t.get("acc_needs", "NEEDS WORK"), (200, 50, 50)
+                badge_bg, badge_brd = (255, 234, 234), (214, 69, 69)
 
             acc_line1 = f"{accuracy}%"
             acc_line2 = qual_text
@@ -1335,10 +1421,10 @@ def draw_dashboard(app, canvas):
         coach_type = getattr(app, "coach_msg_type", "neutral")
         if coach_text and hand_visible:
             c_color, c_bg, c_brd = {
-                "good": ((0, 212, 170), (0, 30, 24), (0, 140, 110)),
-                "warn": ((245, 158, 11), (40, 28, 0), (170, 110, 0)),
-                "neutral": ((210, 220, 235), (20, 28, 46), (60, 80, 120)),
-            }.get(coach_type, ((210, 220, 235), (20, 28, 46), (60, 80, 120)))
+                "good": ((15, 140, 98), (226, 246, 238), (15, 157, 110)),
+                "warn": ((176, 100, 0), (255, 244, 224), (217, 130, 0)),
+                "neutral": ((27, 43, 60), (255, 255, 255), (207, 219, 232)),
+            }.get(coach_type, ((27, 43, 60), (255, 255, 255), (207, 219, 232)))
 
             cw_, ch_ = _text_size(draw, coach_text, f_coach, f"coach_{coach_text[:20]}")
             px1 = (w - cw_) // 2 - 24

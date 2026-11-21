@@ -1,5 +1,9 @@
 opencv-python
 mediapipe
 pygame
-google-generativeai
 numpy
+Pillow
+matplotlib
+edge-tts
+moviepy
+google-generativeai

@@ -479,9 +479,9 @@ def _score_piano(geo: HandGeometry, finger_idx: int) -> GestureScore:
 
 # ── 4.10  Hitchhiker ────────────────────────────────────────────────────────
 
-def _score_hitchhiker_fist(geo: HandGeometry) -> GestureScore:
+def _score_hitchhiker_fist(geo: HandGeometry, lms: list) -> GestureScore:
     """Fist with thumb tucked in."""
-    fist_score = _score_squeeze_closed(geo).accuracy / 100.0
+    fist_score = _score_squeeze_closed(geo, lms).accuracy / 100.0
     thumb_down = 1.0 - _sigmoid(geo.thumb_ext, 0.50, 10.0)
     return GestureScore(int(fist_score * thumb_down * 100))
 
@@ -543,7 +543,7 @@ def get_movement_accuracy(
         return _score_piano(geo, current_step).accuracy
 
     elif exercise_name == "HITCH":
-        return (_score_hitchhiker_fist(geo) if current_step == 0
+        return (_score_hitchhiker_fist(geo, lms) if current_step == 0
                 else _score_hitchhiker(geo)).accuracy
 
     return 80
