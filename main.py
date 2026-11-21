@@ -90,6 +90,8 @@ class RehabApp:
         self.cam_thread = None
         self.running = True
         self.in_therapy = False
+        self.mode = None             # active full-screen camera mode (tutorial / piano game) or None
+        self.backend_ready = False
 
         self.frame_queue = queue.Queue(maxsize=1)
         self.frame_count = 0
@@ -100,6 +102,7 @@ class RehabApp:
         # --- DOCTOR PRESCRIPTION LOCK ---
         self.prescribed_exercises = ["SQUEEZE", "TABLETOP", "PIANO","SCISSOR", "WIPER", "WRIST"]
         self.current_exercise = self.prescribed_exercises[0]
+        recalc_ui_metrics(self)      # tab widths depend on how many exercises are prescribed
         self.last_timestamp_ms = 0
         self.hold_duration = 0.5
         self.show_celebration = False
@@ -198,6 +201,10 @@ class RehabApp:
             self._overlay_buf = None
 
     def _handle_click(self, event):
+        mode = self.mode
+        if mode is not None:
+            mode.on_click(event.x, event.y)
+            return
         u = self.ui
         if 0 < event.y < u['btn_h']:
             try:
@@ -404,11 +411,15 @@ class RehabApp:
             print(f"[BACKEND ERROR] {e}")
 
     def _on_backend_ready(self):
+        self.backend_ready = True
+        for name in ("btn_tut", "btn_game"):
+            if hasattr(self, name):
+                getattr(self, name).config(state="normal")
         if hasattr(self, 'start_btn'):
             lang = getattr(self, 'current_lang', 'EN')
             self.start_btn.config(
                 state="normal", text="START THERAPY SESSION" if lang == "EN" else "เริ่มการบำบัด",
-                bg="#10b981", fg="white", cursor="hand2",
+                bg="#0b7d58", fg="white", cursor="hand2",
             )
             self.start_btn.update()
         else:
@@ -435,19 +446,49 @@ class RehabApp:
             self.start_btn.config(state="disabled", text=loading_text, bg="#475569")
             self.start_btn.update()
 
-            # Flush out any old frames
-            with self.frame_queue.mutex:
-                self.frame_queue.queue.clear()
+            self.mode = None
+            self._spawn_camera()
 
-            # --- THE FIX: Launch the single loop directly ---
-            self.in_therapy = True
-            self.last_correct_time = time.time()
+    def _spawn_camera(self):
+        """Starts the camera thread and waits for the first processed frame before showing video."""
+        with self.frame_queue.mutex:
+            self.frame_queue.queue.clear()
+        self.in_therapy = True
+        self.last_correct_time = time.time()
+        self.cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
+        self.cam_thread.start()
+        self.root.after(0, self._wait_for_first_frame)
 
-            self.cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
-            self.cam_thread.start()
+    def start_mode(self, kind):
+        """Launches a full-screen camera mode: 'tutorial' (ghost hand guide) or 'piano' (finger piano game)."""
+        if not self.backend_ready:
+            return
+        if self.cam_thread and self.cam_thread.is_alive():
+            return
+        if kind == "tutorial":
+            from tutorial_mode import TutorialMode
+            self.mode = TutorialMode(self)
+        else:
+            from piano_game import PianoGameMode
+            self.mode = PianoGameMode(self)
+        self.start_btn.config(state="disabled")
+        self.btn_tut.config(state="disabled")
+        self.btn_game.config(state="disabled")
+        self._spawn_camera()
 
-            # Tell the main window to wait until the AI produces the first video frame
-            self.root.after(0, self._wait_for_first_frame)
+    def credit_reps(self, ex, n=1, acc=None):
+        """Adds finished reps from a mini-game to today's therapy record (same rules as _process_timers)."""
+        if ex not in self.reps_data:
+            return
+        goal = getattr(self, f"{ex.lower()}_goal", (3, 15))
+        self.reps_data[ex] += n
+        if self.reps_data[ex] >= goal[1]:
+            self.sets_data[ex] += 1
+            self.reps_data[ex] = 0
+        if acc is not None:
+            self.session_acc[ex]["sum"] += int(acc)
+            self.session_acc[ex]["frames"] += 1
+        self.save_progress()
 
     def _open_camera_and_start(self):
         cv2 = _ensure_cv2()
@@ -503,18 +544,29 @@ class RehabApp:
         # CRITICAL FIX: DO NOT call .join() or cap.release() here!
         # It deadlocks Tkinter. The camera_loop's 'finally' block handles it safely.
 
+        was_mode = self.mode is not None
+        if was_mode:
+            try:
+                self.mode.stop()
+            except Exception:
+                pass
+            self.mode = None
+            self.btn_tut.config(state="normal")
+            self.btn_game.config(state="normal")
+
         # 2. Instantly switch the UI back to the menu
         self.video_frame.pack_forget()
 
         lang = getattr(self, 'current_lang', 'EN')
         self.start_btn.config(
             text="START THERAPY SESSION" if lang == "EN" else "เริ่มการบำบัด",
-            bg="#10b981", state="normal", cursor="hand2",
+            bg="#0b7d58", state="normal", cursor="hand2",
         )
         self.menu_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        # 3. Show the score popup
-        show_session_summary(self)
+        # 3. Show the score popup (therapy sessions only)
+        if not was_mode:
+            show_session_summary(self)
 
     def reset_current_exercise(self):
         ex = self.current_exercise
@@ -776,6 +828,26 @@ class RehabApp:
                         # 2. Run hand detection
                         result = detector.detect(mp_image)
 
+                        raw_lms = None
+                        if result.hand_landmarks and (
+                                not hasattr(result, 'handedness') or result.handedness[0][0].score > 0.60):
+                            raw_lms = result.hand_landmarks[0]
+
+                        # 2b. A full-screen mode (tutorial / piano game) draws the whole screen itself.
+                        mode = self.mode
+                        if mode is not None:
+                            stable = self.stabilizer.stabilize(raw_lms) if raw_lms else None
+                            self.is_hand_visible = stable is not None
+                            pil_img = mode.on_frame(flipped_frame, stable, time.time(),
+                                                    (self.render_w, self.render_h))
+                            if self.frame_queue.full():
+                                try:
+                                    self.frame_queue.get_nowait()
+                                except queue.Empty:
+                                    pass
+                            self.frame_queue.put_nowait(pil_img)
+                            continue
+
                         # 3. Canvas Geometry Calculations
                         cam_h, cam_w = raw_frame.shape[:2]
                         scale = min(self.render_w / cam_w, self.render_h / cam_h)
@@ -788,11 +860,6 @@ class RehabApp:
                         canvas[:] = 0
                         y_off, x_off = (self.render_h - new_h) // 2, (self.render_w - new_w) // 2
                         canvas[y_off:y_off + new_h, x_off:x_off + new_w] = cv2.resize(flipped_frame, (new_w, new_h))
-
-                        raw_lms = None
-                        if result.hand_landmarks and (
-                                not hasattr(result, 'handedness') or result.handedness[0][0].score > 0.60):
-                            raw_lms = result.hand_landmarks[0]
 
                         if raw_lms:
                             self.is_hand_visible = True
