@@ -23,7 +23,6 @@ All songs are public-domain melodies. Notes are synthesised in code (offline).
 from __future__ import annotations
 
 import json
-import math
 import statistics
 import time
 
@@ -83,26 +82,34 @@ FINGER_TH = ["นิ้วชี้", "นิ้วกลาง", "นิ้ว�
 FINGER_EN = ["Index", "Middle", "Ring", "Pinky"]
 
 TXT = {
-    "TH": {"title": "เกมเปียโนนิ้ว", "back": "กลับเมนู", "choose": "เลือกเพลง", "speed": "ความเร็ว",
-           "wait": "โหมดรอ (ไม่มีพลาด)", "wait_on": "เปิด", "wait_off": "ปิด", "play": "เริ่มเล่น",
-           "best": "ดีที่สุด", "raise": "ยกมือขึ้นในกรอบกล้อง", "ready": "พร้อมแล้ว!", "paused":
-           "เกมหยุดชั่วคราว - วางมือในกรอบกล้อง", "hits": "ถูก", "miss": "พลาด", "great": "เยี่ยม!",
-           "again": "เล่นอีกครั้ง", "songs": "เลือกเพลงใหม่", "result": "สรุปผล", "acc": "ความแม่นยำ",
-           "react": "เวลาตอบสนองเฉลี่ย", "per_finger": "ความแม่นยำแต่ละนิ้ว", "reps": "นับเป็นการฝึกพรมนิ้ว",
-           "times": "ครั้ง", "sec": "วินาที", "up": "ทำได้ดีมาก! ลองเพิ่มความเร็วครั้งหน้า",
-           "keep": "ดีมาก! เล่นความเร็วนี้ต่อไปอีกสักพัก", "down": "ลองลดความเร็ว หรือเปิดโหมดรอ",
-           "focus": "นิ้วที่ควรฝึกเพิ่ม", "lift": "ยกนิ้วเมื่อแผ่นมาถึงแป้น", "hand_tip":
-           "วางมือหันฝ่ามือเข้ากล้อง งอนิ้วเล็กน้อย แล้วยกทีละนิ้ว", "level": "ระดับ"},
-    "EN": {"title": "Finger Piano", "back": "Menu", "choose": "Choose a song", "speed": "Speed",
-           "wait": "Wait mode (no misses)", "wait_on": "On", "wait_off": "Off", "play": "Play",
-           "best": "Best", "raise": "Show your hand to the camera", "ready": "Ready!", "paused":
-           "Paused - show your hand to the camera", "hits": "Hits", "miss": "Missed", "great": "Great!",
-           "again": "Play again", "songs": "Choose song", "result": "Result", "acc": "Accuracy",
-           "react": "Average reaction time", "per_finger": "Accuracy per finger", "reps": "Counted as piano reps",
-           "times": "", "sec": "s", "up": "Excellent! Try a faster speed next time",
-           "keep": "Well done! Stay at this speed a little longer", "down": "Try a slower speed or Wait mode",
-           "focus": "Finger to practise", "lift": "Lift the finger when the tile reaches the key", "hand_tip":
-           "Palm to the camera, fingers slightly bent, lift one finger at a time", "level": "Level"},
+    "TH": {"title": "เกมเปียโนฝึกนิ้ว", "back": "กลับเมนูหลัก", "choose": "เลือกเพลง", "speed": "ความเร็วในการฝึก",
+           "wait": "โหมดรอผู้ป่วย (ไม่มีการนับพลาด)", "wait_on": "เปิด", "wait_off": "ปิด", "play": "เริ่มการฝึก",
+           "best": "ผลดีที่สุด", "raise": "กรุณายกมือให้อยู่ในกรอบกล้อง", "ready": "พร้อมเริ่มการฝึก",
+           "paused": "หยุดชั่วคราว กรุณายกมือให้อยู่ในกรอบกล้อง", "hits": "จำนวนที่ถูกต้อง",
+           "again": "ฝึกอีกครั้ง", "songs": "เลือกเพลงใหม่", "result": "สรุปผลการฝึก", "acc": "ความแม่นยำ",
+           "react": "เวลาตอบสนองเฉลี่ย", "per_finger": "ความแม่นยำรายนิ้ว", "reps": "นับเป็นการฝึกพรมนิ้ว",
+           "times": "ครั้ง", "sec": "วินาที",
+           "up": "ผลการฝึกอยู่ในเกณฑ์ดีมาก แนะนำให้เพิ่มความเร็วในครั้งถัดไป",
+           "keep": "ผลการฝึกอยู่ในเกณฑ์ดี แนะนำให้ฝึกที่ความเร็วนี้ต่อไป",
+           "down": "แนะนำให้ลดความเร็ว หรือเปิดโหมดรอผู้ป่วย",
+           "focus": "นิ้วที่ควรฝึกเพิ่ม", "lift": "ยกนิ้วขึ้นเมื่อแผ่นโน้ตมาถึงแป้น",
+           "hand_tip": "วางมือโดยหันฝ่ามือเข้าหากล้อง งอนิ้วเล็กน้อย แล้วยกนิ้วขึ้นทีละนิ้ว",
+           "level": "ระดับ", "lv": ["ง่าย", "ปานกลาง", "ยาก"], "grade": "ผลการประเมิน",
+           "g_high": "ดีมาก", "g_mid": "ดี", "g_low": "ควรฝึกเพิ่มเติม", "combo": "ต่อเนื่อง", "user": "ผู้ใช้งาน"},
+    "EN": {"title": "Finger Piano Exercise", "back": "Back to menu", "choose": "Select a song", "speed": "Training speed",
+           "wait": "Patient-paced mode (no misses)", "wait_on": "On", "wait_off": "Off", "play": "Start exercise",
+           "best": "Best", "raise": "Please place your hand within the camera frame", "ready": "Ready to begin",
+           "paused": "Paused. Please place your hand within the camera frame", "hits": "Correct",
+           "again": "Repeat exercise", "songs": "Choose another song", "result": "Exercise summary", "acc": "Accuracy",
+           "react": "Average reaction time", "per_finger": "Accuracy by finger", "reps": "Counted as piano-finger repetitions",
+           "times": "", "sec": "s",
+           "up": "Results are excellent. Consider a faster speed next time.",
+           "keep": "Results are good. Continue at this speed.",
+           "down": "Consider a slower speed or patient-paced mode.",
+           "focus": "Finger to practise", "lift": "Lift the finger when the note reaches the key",
+           "hand_tip": "Place your hand with the palm facing the camera, fingers slightly bent, and lift one finger at a time.",
+           "level": "Level", "lv": ["Easy", "Moderate", "Advanced"], "grade": "Assessment",
+           "g_high": "Excellent", "g_mid": "Good", "g_low": "Needs more practice", "combo": "Streak", "user": "User"},
 }
 
 
@@ -241,7 +248,7 @@ class PianoGameMode(CameraMode):
         self.combo = 0
         self.reactions: list[float] = []
         self.finger_stats = [[0, 0] for _ in range(4)]   # [hit, total] per finger
-        self.effects: list[tuple] = []                   # (lane, t0, text)
+        self.effects: list[tuple] = []                   # (lane, t0)
         self.reps_credited = 0
         self.lift_count = 0
         self.armed = [True] * 4
@@ -319,7 +326,7 @@ class PianoGameMode(CameraMode):
                                       else max(0.0, now - n.get("arrived", now)))
                 self.finger_stats[f][0] += 1
                 self.finger_stats[f][1] += 1
-                self.effects.append((lane, now, TXT[self.lang]["great"]))
+                self.effects.append((lane, now))
                 _play_note(n["midi"])
                 self._credit_rep()
 
@@ -380,27 +387,20 @@ class PianoGameMode(CameraMode):
 
     def _header(self, d, W, H):
         tx = TXT[self.lang]
-        hh = int(H * 0.085)
-        pad = int(H * 0.022)
-        d.rectangle([0, 0, W, hh], fill=T.R_SURFACE)
-        d.rectangle([0, hh - 3, W, hh], fill=T.R_PRIMARY)
-        d.rounded_rectangle([pad, hh * 0.22, pad + hh * 0.56, hh * 0.78], radius=8, fill=T.R_PRIMARY)
-        T.note_icon(d, pad + hh * 0.28, hh * 0.5, hh * 0.3)
         title = tx["title"]
         if self.state != "SELECT":
             title += "  ·  " + SONGS[self.song_idx]["th" if self.lang == "TH" else "en"]
-        T.text_left(d, pad + hh * 0.75, hh * 0.5, title, T.font(H * 0.032), T.R_HEADING)
-        bw = int(W * 0.13)
-        box = (W - pad - bw, hh * 0.17, W - pad, hh * 0.83)
-        T.button(d, box, tx["back"], T.font(H * 0.026), "danger")
-        self.add_button(box, "exit")
-        self._hh, self._pad = hh, pad
+        user = getattr(self.app, "current_user", "") or ""
+        who = f"{tx['user']}: {user}" if user else ""
+        hh, back = T.draw_header(d, W, H, title, tx["back"], who, icon="note")
+        self.add_button(back, "exit")
+        self._hh, self._pad = hh, int(H * 0.022)
 
     def _render_select(self, img, d, frame_bgr, lms, W, H):
         tx = TXT[self.lang]
         th = self.lang == "TH"
         hh, pad = self._hh, self._pad
-        f_mid, f_sm, f_xs = T.font(H * 0.032), T.font(H * 0.027), T.font(H * 0.022, False)
+        f_mid, f_sm, f_xs = T.font(H * 0.036), T.font(H * 0.03), T.font(H * 0.026, False)
         split = int(W * 0.62)
         top = hh + pad
 
@@ -408,7 +408,7 @@ class PianoGameMode(CameraMode):
         T.text_left(d, pad + 6, top + H * 0.03, tx["choose"], f_mid, T.R_HEADING)
         cols, gap = 2, pad
         cw = (split - pad - gap) / cols
-        ch = H * 0.12
+        ch = H * 0.125
         y0 = top + H * 0.07
         for i, s in enumerate(SONGS):
             x = pad + (i % cols) * (cw + gap)
@@ -417,12 +417,12 @@ class PianoGameMode(CameraMode):
             sel = i == self.song_idx
             T.card(d, box, fill=(232, 242, 253) if sel else T.R_SURFACE,
                    outline=T.R_PRIMARY if sel else T.R_BORDER, width=4 if sel else 2)
-            T.text_left(d, x + 22, y + ch * 0.34, s["th" if th else "en"], f_sm, T.R_HEADING)
-            for k in range(3):
-                self._star(d, x + 34 + k * 30, y + ch * 0.72, 11, filled=k < s["level"])
+            T.text_left(d, x + 22, y + ch * 0.32, s["th" if th else "en"], f_sm, T.R_HEADING)
+            T.text_left(d, x + 22, y + ch * 0.74, f"{tx['level']}: {tx['lv'][s['level'] - 1]}", f_xs, T.R_MUTED)
             b = self.best.get(s["id"])
             if b is not None:
-                T.text_left(d, x + cw - 170, y + ch * 0.72, f"{tx['best']} {b}%", f_xs, T.R_SUCCESS)
+                bw_ = T.text_size(d, f"{tx['best']} {b}%", f_xs)[0]
+                T.text_left(d, x + cw - 22 - bw_, y + ch * 0.74, f"{tx['best']} {b}%", f_xs, T.R_SUCCESS)
             self.add_button(box, f"song:{i}")
 
         # Speed + wait mode
@@ -454,12 +454,12 @@ class PianoGameMode(CameraMode):
         T.card(d, cam_box, fill=(30, 41, 56))
         T.place_camera(img, frame_bgr, (rx0 + 6, top + 6, rx1 - 6, cam_box[3] - 6), lms)
         ty = cam_box[3] + pad
-        T.card(d, (rx0, ty, rx1, ty + H * 0.2))
+        T.card(d, (rx0, ty, rx1, ty + H * 0.22))
         status = tx["ready"] if lms else tx["raise"]
-        T.text_left(d, rx0 + 22, ty + H * 0.04, status, f_mid, T.R_SUCCESS if lms else T.R_WARN)
-        self._wrap(d, tx["hand_tip"], rx0 + 22, ty + H * 0.095, rx1 - rx0 - 44, f_xs, T.R_TEXT, H * 0.034)
+        T.text_left(d, rx0 + 22, ty + H * 0.04, status, f_mid, T.R_SUCCESS if lms else T.R_WARN_TEXT)
+        self._wrap(d, tx["hand_tip"], rx0 + 22, ty + H * 0.095, rx1 - rx0 - 44, f_xs, T.R_TEXT, H * 0.037)
         pbox = (rx0, H - pad - H * 0.1, rx1, H - pad)
-        T.button(d, pbox, tx["play"], T.font(H * 0.038), "success")
+        T.button(d, pbox, tx["play"], T.font(H * 0.04), "success")
         self.add_button(pbox, "play")
 
     def _render_play(self, img, d, frame_bgr, lms, now, W, H):
@@ -519,7 +519,7 @@ class PianoGameMode(CameraMode):
                 T.text_center(d, x0 + lane_w / 2, min(y_bot, hit_y) - H * 0.03, name, f_tile, (255, 255, 255))
 
         # keys (one per finger) with live lift meter
-        f_key = T.font(H * 0.027)
+        f_key = T.font(H * 0.03)
         nxt = next((n for n in self.chart if n["state"] == "wait"), None)
         for lane in range(4):
             f = self.lane_finger[lane]
@@ -535,32 +535,29 @@ class PianoGameMode(CameraMode):
             T.text_center(d, (kb[0] + kb[2]) / 2, (kb[1] + kb[3]) / 2, fnames[f], f_key,
                           (255, 255, 255) if lit else col)
 
-        # hit effects
-        f_fx = T.font(H * 0.034)
+        # hit feedback: a single expanding ring on the key (no pop-up words)
         self.effects = [e for e in self.effects if now - e[1] < 0.7]
-        for lane, t0, text in self.effects:
+        for lane, t0 in self.effects:
             a = (now - t0) / 0.7
             cx = lx0 + lane * lane_w + lane_w / 2
-            cy = hit_y - H * 0.16 - a * H * 0.08
             r = H * 0.03 + a * H * 0.05
             d.ellipse([cx - r, hit_y - r * 0.4, cx + r, hit_y + r * 0.4],
                       outline=T.FINGER_RGB[self.lane_finger[lane]], width=3)
-            T.text_center(d, cx, cy, text, f_fx, T.R_SUCCESS)
 
         # countdown / pause overlays on the lanes
         cxm, cym = (lx0 + lx1) / 2, (ly0 + hit_y) / 2
         if self.state == "COUNTDOWN":
             msg = str(3 - int(self.count_t)) if lms else tx["raise"]
             fnt = T.font(H * 0.16) if lms else T.font(H * 0.036)
-            d.rounded_rectangle([cxm - W * 0.2, cym - H * 0.11, cxm + W * 0.2, cym + H * 0.11], radius=26,
-                                fill=(255, 255, 255), outline=T.R_PRIMARY, width=4)
+            d.rounded_rectangle([cxm - W * 0.22, cym - H * 0.12, cxm + W * 0.22, cym + H * 0.12], radius=12,
+                                fill=(255, 255, 255), outline=T.R_PRIMARY, width=3)
             T.text_center(d, cxm, cym - (H * 0.02 if lms else 0), msg, fnt, T.R_PRIMARY)
             if lms:
-                T.text_center(d, cxm, cym + H * 0.075, tx["lift"], T.font(H * 0.022, False), T.R_MUTED)
+                T.text_center(d, cxm, cym + H * 0.08, tx["lift"], T.font(H * 0.026, False), T.R_TEXT)
         elif not lms:
-            d.rounded_rectangle([cxm - W * 0.25, cym - H * 0.06, cxm + W * 0.25, cym + H * 0.06], radius=22,
-                                fill=(255, 255, 255), outline=T.R_WARN, width=4)
-            T.text_center(d, cxm, cym, tx["paused"], T.font(H * 0.028), T.R_WARN)
+            d.rounded_rectangle([cxm - W * 0.27, cym - H * 0.07, cxm + W * 0.27, cym + H * 0.07], radius=12,
+                                fill=(255, 255, 255), outline=T.R_WARN, width=3)
+            T.text_center(d, cxm, cym, tx["paused"], T.font(H * 0.03), T.R_WARN_TEXT)
 
         # right panel: camera, finger meters, score
         rx0, rx1 = split + pad, W - pad
@@ -568,7 +565,7 @@ class PianoGameMode(CameraMode):
         T.card(d, (rx0, hh + pad, rx1, cam_bot), fill=(30, 41, 56))
         T.place_camera(img, frame_bgr, (rx0 + 6, hh + pad + 6, rx1 - 6, cam_bot - 6), lms)
 
-        mb = (rx0, cam_bot + pad, rx1, cam_bot + pad + H * 0.27)
+        mb = (rx0, cam_bot + pad, rx1, cam_bot + pad + H * 0.225)
         T.card(d, mb)
         bar_w = (rx1 - rx0 - 60) / 4
         base = mb[3] - H * 0.05
@@ -581,18 +578,17 @@ class PianoGameMode(CameraMode):
             hgt = (base - top) * min(100, self.scores[f]) / 100
             if hgt > 4:
                 d.rounded_rectangle([bx + 10, base - hgt, bx + bar_w - 10, base], radius=10, fill=T.FINGER_RGB[f])
-            T.text_center(d, bx + bar_w / 2, base + H * 0.022, fnames[f], T.font(H * 0.019, False), T.R_TEXT)
+            T.text_center(d, bx + bar_w / 2, base + H * 0.026, fnames[f], T.font(H * 0.024, False), T.R_TEXT)
         d.line([rx0 + 30, thr_y, rx1 - 30, thr_y], fill=T.R_WARN, width=2)
 
         sb = (rx0, mb[3] + pad, rx1, H - pad)
         T.card(d, sb)
         total = len(self.chart)
-        T.text_left(d, rx0 + 24, sb[1] + (sb[3] - sb[1]) * 0.33, f"{tx['hits']}  {self.hits} / {total}",
-                    T.font(H * 0.04), T.R_HEADING)
+        T.text_left(d, rx0 + 24, sb[1] + (sb[3] - sb[1]) * 0.32, f"{tx['hits']}:  {self.hits} / {total}",
+                    T.font(H * 0.038), T.R_HEADING)
         if self.combo >= 3:
-            T.text_left(d, rx0 + 24, sb[1] + (sb[3] - sb[1]) * 0.74, f"x{self.combo}",
-                        T.font(H * 0.032), T.R_SUCCESS)
-            T.note_icon(d, rx0 + 24 + H * 0.085, sb[1] + (sb[3] - sb[1]) * 0.74, H * 0.022, T.R_SUCCESS)
+            T.text_left(d, rx0 + 24, sb[1] + (sb[3] - sb[1]) * 0.74, f"{tx['combo']}: {self.combo}",
+                        T.font(H * 0.026, False), T.R_SUCCESS)
 
     def _render_result(self, img, d, frame_bgr, lms, W, H):
         tx = TXT[self.lang]
@@ -602,17 +598,22 @@ class PianoGameMode(CameraMode):
         T.card(d, box)
         cx = (box[0] + box[2]) / 2
         T.text_center(d, cx, box[1] + H * 0.05, tx["result"], T.font(H * 0.04), T.R_HEADING)
-        stars = 3 if self.accuracy >= 90 else 2 if self.accuracy >= 65 else 1
-        for k in range(3):
-            self._star(d, cx + (k - 1) * H * 0.1, box[1] + H * 0.14, H * 0.042, filled=k < stars)
-        T.text_center(d, cx, box[1] + H * 0.25, f"{tx['acc']}  {self.accuracy}%", T.font(H * 0.05), T.R_PRIMARY)
-        f_sm, f_xs = T.font(H * 0.027), T.font(H * 0.024, False)
-        T.text_center(d, cx, box[1] + H * 0.315,
-                      f"{tx['react']}  {self.avg_react:.1f} {tx['sec']}   ·   {tx['reps']}  {self.reps_credited} "
-                      f"{tx['times']}", f_xs, T.R_TEXT)
+        if self.accuracy >= 90:
+            g_text, g_col = tx["g_high"], T.R_SUCCESS
+        elif self.accuracy >= 65:
+            g_text, g_col = tx["g_mid"], T.R_PRIMARY
+        else:
+            g_text, g_col = tx["g_low"], T.R_WARN_TEXT
+        T.text_center(d, cx, box[1] + H * 0.125, f"{tx['grade']}:  {g_text}", T.font(H * 0.04), g_col)
+        T.text_center(d, cx, box[1] + H * 0.225, f"{tx['acc']}  {self.accuracy}%", T.font(H * 0.056), T.R_HEADING)
+        f_sm, f_xs = T.font(H * 0.03), T.font(H * 0.026, False)
+        T.text_center(d, cx, box[1] + H * 0.30,
+                      f"{tx['react']}:  {self.avg_react:.1f} {tx['sec']}", f_xs, T.R_TEXT)
+        T.text_center(d, cx, box[1] + H * 0.34,
+                      f"{tx['reps']}:  {self.reps_credited} {tx['times']}".rstrip(), f_xs, T.R_TEXT)
 
         # per finger bars
-        fy = box[1] + H * 0.37
+        fy = box[1] + H * 0.385
         T.text_left(d, box[0] + 40, fy + H * 0.02, tx["per_finger"], f_sm, T.R_HEADING)
         fnames = FINGER_TH if th else FINGER_EN
         bw = (box[2] - box[0] - 80) / 4
@@ -625,12 +626,12 @@ class PianoGameMode(CameraMode):
             if rate:
                 d.rounded_rectangle([bx + 8, by0, bx + 8 + (bw - 16) * rate, by1], radius=12, fill=T.FINGER_RGB[f])
             label = f"{fnames[f]}  {int(rate * 100)}%" if rate is not None else f"{fnames[f]}  -"
-            T.text_center(d, bx + bw / 2, by1 + H * 0.025, label, f_xs, T.R_TEXT)
+            T.text_center(d, bx + bw / 2, by1 + H * 0.03, label, f_xs, T.R_TEXT)
         msg = tx[self.advice]
         if self.weak_finger is not None:
             msg += f"   ·   {tx['focus']}: {fnames[self.weak_finger]}"
-        T.text_center(d, cx, box[3] - H * 0.045, msg, f_sm,
-                      T.R_SUCCESS if self.advice == "up" else T.R_WARN if self.advice == "down" else T.R_PRIMARY)
+        T.text_center(d, cx, box[3] - H * 0.05, msg, f_xs,
+                      T.R_SUCCESS if self.advice == "up" else T.R_WARN_TEXT if self.advice == "down" else T.R_PRIMARY)
 
         bw2 = W * 0.22
         y0, y1 = H - pad - H * 0.1, H - pad
@@ -642,16 +643,6 @@ class PianoGameMode(CameraMode):
             self.add_button(b, action)
 
     # ── small drawing helpers ───────────────────────────────────
-    @staticmethod
-    def _star(d, cx, cy, r, filled=True):
-        pts = []
-        for i in range(10):
-            a = -math.pi / 2 + i * math.pi / 5
-            rr = r if i % 2 == 0 else r * 0.45
-            pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
-        d.polygon(pts, fill=(255, 193, 7) if filled else (226, 232, 240),
-                  outline=(214, 150, 0) if filled else (190, 199, 210))
-
     @staticmethod
     def _wrap(d, text, x, y, width, fnt, fill, line_h):
         words, line = text.split(" "), ""

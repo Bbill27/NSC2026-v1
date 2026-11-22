@@ -429,7 +429,7 @@ class RehabApp:
         total_sets_today = sum(self.sets_data.values())
         if total_sets_today >= 12:
             lang = getattr(self, 'current_lang', 'EN')
-            msg = "SAFETY LOCK: Daily limit reached. Please rest." if lang == "EN" else "แจ้งเตือนความปลอดภัย: ถึงขีดจำกัดแล้ว"
+            msg = "Daily exercise limit reached. Please rest." if lang == "EN" else "ครบจำนวนการฝึกประจำวันแล้ว กรุณาพักผ่อน"
             self.start_btn.config(text=msg, bg="#e74c3c", state="disabled")
             return
 

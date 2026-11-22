@@ -63,17 +63,17 @@ SUCCESS_COLOR  = "#0f9d6e"
 LANG = {
     "EN": {
         "title": "CerebroMotion",
-        "subtitle": "Hand Rehabilitation at Home",
+        "subtitle": "Home Hand Rehabilitation System",
         "btn_loading": "LOADING ENGINE...",
         "btn_start": "START THERAPY SESSION",
         "btn_opening": "OPENING CAMERA...",
         "btn_cam_error": "CAMERA ERROR - TRY AGAIN",
         "btn_progress": "VIEW PROGRESS",
-        "btn_tutorial": "INTERACTIVE GUIDE",
-        "btn_game": "FINGER PIANO GAME",
+        "btn_tutorial": "MOVEMENT GUIDE",
+        "btn_game": "FINGER PIANO EXERCISE",
         "btn_video": "Watch intro video",
-        "rx_title": "Today's prescription",
-        "hello": "Hello",
+        "rx_title": "Prescribed exercises for today",
+        "hello": "User",
         "rx_done": "done",
         "rx_sets": "sets",
         "rx_empty": "Press START to begin",
@@ -96,22 +96,22 @@ LANG = {
         "ai_insight": "Clinical AI Insights",
         "btn_export": "EXPORT DOCTOR REPORT",
         "export_done": "Report saved to Documents folder!",
-        "coach_perfect": "Perfect form! Keep going!",
-        "coach_close_more": "Try closing fingers fully",
-        "coach_open_more": "Relax - open hand first",
-        "coach_spread_more": "Spread fingers wider",
-        "coach_hold_steady": "Hold position steady",
-        "coach_well_done": "Excellent movement!",
-        "guide_box": "Place hand here",
+        "coach_perfect": "Correct posture. Please continue.",
+        "coach_close_more": "Please close your fingers fully",
+        "coach_open_more": "Please open your hand first",
+        "coach_spread_more": "Please spread your fingers wider",
+        "coach_hold_steady": "Please hold the position steady",
+        "coach_well_done": "Movement completed correctly",
+        "guide_box": "Place your hand in this area",
         "ex_1": "1. Open/Close", "ex_2": "2. Thumb", "ex_3": "3. Wiper",
         "ex_4": "4. Flip", "ex_5": "5. L-Shape", "ex_6": "6. Scissor",
         "ex_7": "7. Claw", "ex_8": "8. Wrist", "ex_9": "9. Piano", "ex_10": "10. Hitch",
-        "move_closer": "NO HAND: MOVE CLOSER",
+        "move_closer": "Hand not detected. Please move closer.",
         "set": "Set", "rep": "Rep", "daily_goal": "Goal Met!",
         "hud_reset": "RESET",
-        "hud_menu": "LEAVE",
-        "acc_title": "Accuracy:", "acc_excel": "EXCELLENT", "acc_good": "GOOD", "acc_needs": "NEEDS WORK",
-        "session_complete": "SESSION COMPLETE",
+        "hud_menu": "MENU",
+        "acc_title": "Accuracy:", "acc_excel": "Excellent", "acc_good": "Good", "acc_needs": "Needs improvement",
+        "session_complete": "Session Summary",
         "total_ex": "Total Exercises:",
         "btn_ok": "OK",
         "role_1": "Game Design",        "name_1": "Punnatorn Chinpitakwattana",
@@ -121,8 +121,8 @@ LANG = {
         "lbl_login_title": "User Login", "lbl_username": "Username", "lbl_password": "Password",
         "lbl_remember": "Remember me", "lbl_forgot": "Forgot Password?", "btn_login": "LOGIN",
         "err_login": "Invalid credentials", "btn_logout": "LOG OUT",
-        "coach_lift_finger": "Lift that finger higher",
-        "coach_thumb_up":    "Extend your thumb fully",
+        "coach_lift_finger": "Please lift that finger higher",
+        "coach_thumb_up":    "Please extend your thumb fully",
         "inst_sq_1": "Make Fist",
         "inst_sq_2": "Open Hand",
         "inst_th":   "Touch",
@@ -145,17 +145,17 @@ LANG = {
         },
     "TH": {
         "title": "เซรีโบรโมชัน",
-        "subtitle": "ฟื้นฟูมือที่บ้าน ปลอดภัย ใช้งานง่าย",
+        "subtitle": "ระบบฟื้นฟูสมรรถภาพมือที่บ้าน",
         "btn_loading": "กำลังเตรียมระบบ AI...",
         "btn_start": "เริ่มการบำบัด",
         "btn_opening": "กำลังเชื่อมต่อกล้อง...",
         "btn_cam_error": "ข้อผิดพลาดของกล้อง - ลองอีกครั้ง",
         "btn_progress": "ประวัติและผลการบำบัด",
-        "btn_tutorial": "คู่มือฝึกแบบโต้ตอบ",
-        "btn_game": "เกมเปียโนนิ้ว",
+        "btn_tutorial": "คู่มือการฝึกท่าทาง",
+        "btn_game": "เกมเปียโนฝึกนิ้ว",
         "btn_video": "ดูวิดีโอแนะนำ",
-        "rx_title": "แผนการฝึกวันนี้",
-        "hello": "สวัสดี",
+        "rx_title": "รายการฝึกที่กำหนดสำหรับวันนี้",
+        "hello": "ผู้ใช้งาน",
         "rx_done": "ครบแล้ว",
         "rx_sets": "เซ็ต",
         "rx_empty": "กดเริ่มการบำบัดได้เลย",
@@ -178,21 +178,21 @@ LANG = {
         "ai_insight": "การวิเคราะห์จาก AI ทางการแพทย์",
         "btn_export": "ส่งออกรายงานแพทย์",
         "export_done": "บันทึกรายงานสำเร้จ!",
-        "coach_perfect": "ฟอร์มดีมาก! ทำต่อไป!",
-        "coach_close_more": "ลองกำมือให้แน่นขึ้น",
-        "coach_open_more": "ผ่อนคลาย แบมือก่อน",
-        "coach_spread_more": "กางนิ้วออกให้กว้างกว่านี้",
-        "coach_hold_steady": "ค้างท่าให้นิ่ง",
-        "coach_well_done": "การเคลื่อนไหวดีเยี่ยม!",
-        "guide_box": "วางมือที่นี่",
+        "coach_perfect": "ท่าทางถูกต้อง กรุณาทำต่อ",
+        "coach_close_more": "กรุณากำมือให้แน่นขึ้น",
+        "coach_open_more": "กรุณาแบมือก่อน",
+        "coach_spread_more": "กรุณากางนิ้วให้กว้างขึ้น",
+        "coach_hold_steady": "กรุณาค้างท่าไว้ให้นิ่ง",
+        "coach_well_done": "ทำท่าได้ถูกต้อง",
+        "guide_box": "วางมือในกรอบนี้",
         "ex_1": "1. กำ/แบมือ", "ex_2": "2. แตะนิ้วโป้ง", "ex_3": "3. โบกมือ",
         "ex_4": "4. หงาย/คว่ำ", "ex_5": "5. ทำตัว L", "ex_6": "6. กางนิ้ว",
         "ex_7": "7. ทำตะขอ", "ex_8": "8. พับข้อมือ", "ex_9": "9. พรมนิ้ว", "ex_10": "10. ชูนิ้วโป้ง",
-        "move_closer": "ไม่พบมือ: กรุณาขยับเข้ามาใกล้",
+        "move_closer": "ไม่พบมือ กรุณาขยับเข้าใกล้กล้อง",
         "set": "เซ็ต", "rep": "ครั้ง", "daily_goal": "สำเร็จเป้าหมาย!",
         "hud_reset": "รีเซ็ต",
         "hud_menu": "กลับเมนูหลัก",
-        "acc_title": "ความแม่นยำ:", "acc_excel": "ดีเยี่ยม", "acc_good": "ดี", "acc_needs": "พยายามอีกนิด",
+        "acc_title": "ความแม่นยำ:", "acc_excel": "ดีมาก", "acc_good": "ดี", "acc_needs": "ควรปรับปรุง",
         "session_complete": "สรุปผลการบำบัด",
         "total_ex": "จำนวนท่าที่ฝึก:",
         "btn_ok": "ตกลง",
@@ -203,8 +203,8 @@ LANG = {
         "lbl_login_title": "เข้าสู่ระบบ", "lbl_username": "ชื่อผู้ใช้งาน", "lbl_password": "รหัสผ่าน",
         "lbl_remember": "จดจำการเข้าระบบ", "lbl_forgot": "ลืมรหัสผ่าน?", "btn_login": "เข้าสู่ระบบ",
         "err_login": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "btn_logout": "ออกจากระบบ",
-        "coach_lift_finger": "ยกนิ้วนั้นขึ้นให้สูงกว่านี้",
-        "coach_thumb_up":    "เหยียดนิ้วโป้งออกให้สุด",
+        "coach_lift_finger": "กรุณายกนิ้วนั้นให้สูงขึ้น",
+        "coach_thumb_up":    "กรุณาเหยียดนิ้วหัวแม่มือออกให้สุด",
     },
 }
 
@@ -229,9 +229,9 @@ def _ensure_fonts():
     for name, path, size in [
         ("tab",   "tahomabd.ttf", 26),
         ("large", "tahomabd.ttf", 36),
-        ("small", "tahomabd.ttf", 20),
+        ("small", "tahomabd.ttf", 22),
         ("coach", "tahomabd.ttf", 28),
-        ("tiny",  "tahoma.ttf",   16),
+        ("tiny",  "tahoma.ttf",   20),
     ]:
         for candidate in (path, path.replace("bd", ""),
                           "/usr/share/fonts/opentype/tlwg/Loma-Bold.otf", "DejaVuSans-Bold.ttf", ""):
@@ -517,8 +517,8 @@ def init_tkinter_ui(app):
     sub_font     = font.Font(family="Leelawadee UI", size=14)
     btn_font     = font.Font(family="Leelawadee UI", size=16, weight="bold")
     label_font   = font.Font(family="Leelawadee UI", size=14, weight="bold")
-    small_font   = font.Font(family="Leelawadee UI", size=13)
-    caption_font = font.Font(family="Leelawadee UI", size=9)
+    small_font   = font.Font(family="Leelawadee UI", size=14)
+    caption_font = font.Font(family="Leelawadee UI", size=11)
 
     load_user_settings(app)
 
@@ -609,8 +609,12 @@ def init_tkinter_ui(app):
     rx_card = tk.Frame(app.menu_frame, bg=SURFACE_COLOR, padx=24, pady=10,
                        highlightbackground=BORDER_COLOR, highlightthickness=2)
     rx_card.pack(pady=(14, 0), fill="x", padx=30)
-    app.lbl_hello = tk.Label(rx_card, font=label_font, fg=HIGHLIGHT_TEXT, bg=SURFACE_COLOR, anchor="w")
-    app.lbl_hello.pack(fill="x")
+    hello_row = tk.Frame(rx_card, bg=SURFACE_COLOR)
+    hello_row.pack(fill="x")
+    app.lbl_hello = tk.Label(hello_row, font=label_font, fg=HIGHLIGHT_TEXT, bg=SURFACE_COLOR, anchor="w")
+    app.lbl_hello.pack(side="left")
+    app.lbl_date = tk.Label(hello_row, font=small_font, fg=MUTED_TEXT, bg=SURFACE_COLOR, anchor="e")
+    app.lbl_date.pack(side="right")
     app.lbl_rx_title = tk.Label(rx_card, font=small_font, fg=MUTED_TEXT, bg=SURFACE_COLOR, anchor="w")
     app.lbl_rx_title.pack(fill="x", pady=(0, 4))
     app.rx_rows = tk.Frame(rx_card, bg=SURFACE_COLOR)
@@ -619,7 +623,8 @@ def init_tkinter_ui(app):
     def refresh_menu():
         tt = LANG[app.current_lang]
         user = getattr(app, "current_user", "") or ""
-        app.lbl_hello.config(text=f"{tt['hello']}{', ' + user if user else ''}")
+        app.lbl_hello.config(text=f"{tt['hello']}: {user}" if user else tt["hello"])
+        app.lbl_date.config(text=datetime.now().strftime("%d/%m/%Y"))
         app.lbl_rx_title.config(text=tt["rx_title"])
         for w in app.rx_rows.winfo_children():
             w.destroy()

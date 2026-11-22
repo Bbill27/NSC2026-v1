@@ -53,25 +53,27 @@ EX_NAME = {
 }
 
 EX_INTRO = {
-    "SQUEEZE": ("กำมือให้แน่น แล้วแบมือออกให้สุด", "Make a tight fist, then open your hand wide."),
-    "THUMB": ("แตะปลายนิ้วโป้งกับปลายนิ้วทีละนิ้ว จากนิ้วชี้ไปจนถึงนิ้วก้อย",
-              "Touch your thumb to each fingertip, from index to pinky."),
-    "WIPER": ("เหยียดนิ้วให้ตรง แล้วเอียงมือไปทางซ้ายและทางขวา เหมือนที่ปัดน้ำฝน",
-              "Keep fingers straight and tilt your hand left and right like a wiper."),
-    "FLIP": ("แบมือ หันฝ่ามือเข้าหากล้อง แล้วพลิกให้หลังมือหันเข้าหากล้อง",
+    "SQUEEZE": ("กรุณากำมือให้แน่น แล้วแบมือออกให้สุด", "Please make a firm fist, then open your hand fully."),
+    "THUMB": ("กรุณาแตะปลายนิ้วหัวแม่มือกับปลายนิ้วแต่ละนิ้ว เรียงจากนิ้วชี้ไปจนถึงนิ้วก้อย",
+              "Please touch your thumb to each fingertip in turn, from index to little finger."),
+    "WIPER": ("กรุณาเหยียดนิ้วให้ตรง แล้วเอียงมือไปทางซ้ายและทางขวาสลับกัน",
+              "Keep your fingers straight and tilt your hand to the left, then to the right."),
+    "FLIP": ("กรุณาแบมือโดยหันฝ่ามือเข้าหากล้อง แล้วพลิกมือให้หลังมือหันเข้าหากล้อง",
              "Open your hand with the palm facing the camera, then turn it over."),
-    "TABLETOP": ("หันข้างมือเข้าหากล้อง กำมือ แล้วเหยียดนิ้วตรงพับที่โคนนิ้วเป็นรูปตัวแอล",
-                 "Turn the side of your hand to the camera. Make a fist, then straighten "
-                 "your fingers bending only at the knuckles, like an L."),
-    "SCISSOR": ("หุบนิ้วชิดกัน แล้วกางนิ้วออกให้กว้างที่สุด", "Hold fingers together, then spread them wide."),
-    "HOOK": ("หันข้างมือเข้าหากล้อง เหยียดนิ้วตรง แล้วงอปลายนิ้วเป็นตะขอ ให้โคนนิ้วยังตรงอยู่",
-             "Side of the hand to the camera. Straighten the fingers, then curl the tips into a hook "
-             "while the knuckles stay straight."),
-    "WRIST": ("หันข้างมือเข้าหากล้อง กระดกข้อมือขึ้น แล้วกดข้อมือลง",
-              "Side of the hand to the camera. Bend your wrist up, then down."),
-    "PIANO": ("ยกนิ้วขึ้นทีละนิ้วเหมือนเล่นเปียโน นิ้วอื่นวางไว้", "Lift one finger at a time like playing piano."),
-    "HITCH": ("กำมือเก็บนิ้วโป้ง แล้วกางนิ้วโป้งออกเหมือนโบกรถ",
-              "Make a fist with the thumb tucked, then stick the thumb out."),
+    "TABLETOP": ("กรุณาหันด้านข้างของมือเข้าหากล้อง กำมือ แล้วเหยียดนิ้วให้ตรงโดยงอเฉพาะที่โคนนิ้วเป็นมุมฉาก",
+                 "Turn the side of your hand to the camera. Make a fist, then straighten the fingers, "
+                 "bending only at the knuckles to form an L shape."),
+    "SCISSOR": ("กรุณาหุบนิ้วให้ชิดกัน แล้วกางนิ้วออกให้กว้างที่สุด",
+                "Hold your fingers together, then spread them as wide as you can."),
+    "HOOK": ("กรุณาหันด้านข้างของมือเข้าหากล้อง เหยียดนิ้วให้ตรง แล้วงอปลายนิ้วโดยให้โคนนิ้วยังตรงอยู่",
+             "Turn the side of your hand to the camera. Straighten the fingers, then curl the fingertips "
+             "while keeping the knuckles straight."),
+    "WRIST": ("กรุณาหันด้านข้างของมือเข้าหากล้อง แล้วกระดกข้อมือขึ้น จากนั้นกดข้อมือลง",
+              "Turn the side of your hand to the camera. Bend your wrist up, then down."),
+    "PIANO": ("กรุณายกนิ้วขึ้นทีละนิ้ว โดยให้นิ้วอื่นอยู่ในท่างอเล็กน้อย",
+              "Please lift one finger at a time while the other fingers stay slightly bent."),
+    "HITCH": ("กรุณากำมือโดยเก็บนิ้วหัวแม่มือไว้ แล้วกางนิ้วหัวแม่มือออก",
+              "Make a fist with the thumb tucked in, then extend the thumb outwards."),
 }
 
 
@@ -97,24 +99,25 @@ def _step_names(ex: str, lang: str) -> list[str]:
 
 UI = {
     "TH": {
-        "title": "คู่มือฝึกแบบโต้ตอบ", "back": "กลับเมนู", "watch": "ดูท่าตัวอย่าง",
-        "practice": "ฝึกตาม", "done": "ผ่านแล้ว!", "step": "ขั้นที่", "round": "รอบที่",
-        "start": "เริ่มฝึกเลย", "rewatch": "ดูตัวอย่างอีกครั้ง", "next": "ท่าถัดไป",
-        "again": "ฝึกอีกครั้ง", "checklist": "ตรวจท่าทาง", "no_hand": "ยกมือให้อยู่ในกรอบกล้อง",
-        "copy": "ทำตามมือตัวอย่างนี้", "ready": "พร้อมแล้วยกมือขึ้น ระบบจะเริ่มให้ฝึกเอง",
-        "great": "เก่งมาก! ท่านี้ผ่านแล้ว", "hold": "ค้างไว้...", "good": "ดีมาก!",
-        "your_hand": "มือของคุณ", "learned": "เรียนแล้ว", "skip": "ข้ามขั้นนี้",
-        "skip_hint": "ทำไม่ได้ก็ไม่เป็นไร กดข้ามได้เลย",
+        "title": "คู่มือการฝึกท่าทาง", "back": "กลับเมนูหลัก", "watch": "ดูท่าตัวอย่าง",
+        "practice": "ฝึกปฏิบัติ", "done": "ผ่านแล้ว", "step": "ขั้นที่", "round": "รอบที่",
+        "start": "เริ่มฝึกปฏิบัติ", "rewatch": "ดูตัวอย่างอีกครั้ง", "next": "ท่าถัดไป",
+        "again": "ฝึกซ้ำ", "checklist": "ตรวจสอบท่าทาง", "no_hand": "กรุณายกมือให้อยู่ในกรอบกล้อง",
+        "copy": "กรุณาทำตามท่าตัวอย่าง", "ready": "เมื่อพร้อม กรุณายกมือขึ้น ระบบจะเริ่มการฝึกปฏิบัติโดยอัตโนมัติ",
+        "great": "ผ่านการฝึกท่านี้แล้ว", "hold": "กรุณาค้างท่าไว้", "good": "ท่าทางถูกต้อง",
+        "your_hand": "ภาพจากกล้อง", "learned": "ผ่านแล้ว", "skip": "ข้ามขั้นตอนนี้",
+        "skip_hint": "หากทำได้ยาก สามารถข้ามขั้นตอนนี้ได้", "demo": "ท่าตัวอย่าง",
     },
     "EN": {
-        "title": "Interactive Guide", "back": "Menu", "watch": "Watch the demo",
-        "practice": "Practice", "done": "Passed!", "step": "Step", "round": "Round",
-        "start": "Start practice", "rewatch": "Watch again", "next": "Next exercise",
-        "again": "Practice again", "checklist": "Form check", "no_hand": "Show your hand to the camera",
-        "copy": "Copy this hand", "ready": "Raise your hand when ready - practice starts automatically",
-        "great": "Great job! Exercise learned", "hold": "Hold it...", "good": "Very good!",
-        "your_hand": "Your hand", "learned": "Learned", "skip": "Skip this step",
-        "skip_hint": "No problem if it is hard - you can skip",
+        "title": "Movement Guide", "back": "Back to menu", "watch": "Demonstration",
+        "practice": "Practice", "done": "Completed", "step": "Step", "round": "Round",
+        "start": "Start practice", "rewatch": "Repeat demonstration", "next": "Next exercise",
+        "again": "Practice again", "checklist": "Posture check", "no_hand": "Please place your hand within the camera frame",
+        "copy": "Please follow the demonstrated posture",
+        "ready": "When ready, raise your hand. Practice will begin automatically.",
+        "great": "Exercise completed", "hold": "Please hold the position", "good": "Correct posture",
+        "your_hand": "Camera view", "learned": "Completed", "skip": "Skip this step",
+        "skip_hint": "If this is difficult, you may skip this step", "demo": "Demonstration",
     },
 }
 
@@ -400,29 +403,23 @@ class TutorialMode(CameraMode):
         img, d = T.new_screen(W, H)
         self._buttons = []
         pad = int(H * 0.022)
-        f_big, f_mid, f_sm, f_xs = T.font(H * 0.046), T.font(H * 0.032), T.font(H * 0.026), T.font(H * 0.021, False)
+        f_big, f_mid, f_sm, f_xs = T.font(H * 0.05), T.font(H * 0.036), T.font(H * 0.03), T.font(H * 0.026, False)
 
-        # Header bar
-        hh = int(H * 0.085)
-        d.rectangle([0, 0, W, hh], fill=T.R_SURFACE)
-        d.rectangle([0, hh - 3, W, hh], fill=T.R_PRIMARY)
-        d.rounded_rectangle([pad, hh * 0.22, pad + hh * 0.56, hh * 0.78], radius=8, fill=T.R_PRIMARY)
-        T.text_center(d, pad + hh * 0.28, hh * 0.5, "+", T.font(hh * 0.5), (255, 255, 255))
-        T.text_left(d, pad + hh * 0.75, hh * 0.5, tx["title"], f_mid, T.R_HEADING)
-        bw = int(W * 0.13)
-        back_box = (W - pad - bw, hh * 0.17, W - pad, hh * 0.83)
-        T.button(d, back_box, tx["back"], f_sm, "danger")
+        # Header bar (shared formal header)
+        user = getattr(self.app, "current_user", "") or ""
+        who = f"{'ผู้ใช้งาน' if th else 'User'}: {user}" if user else ""
+        hh, back_box = T.draw_header(d, W, H, tx["title"], tx["back"], who)
         self.add_button(back_box, "exit")
 
         # Exercise tabs
-        ty0, ty1 = hh + pad * 0.6, hh + pad * 0.6 + H * 0.065
+        ty0, ty1 = hh + pad * 0.6, hh + pad * 0.6 + H * 0.07
         n_ex = len(self.exercises)
         tab_w = (W - 2 * pad - (n_ex - 1) * 10) / max(1, n_ex)
         for i, ex in enumerate(self.exercises):
             x0 = pad + i * (tab_w + 10)
             box = (x0, ty0, x0 + tab_w, ty1)
             active = ex == self.ex
-            d.rounded_rectangle(box, radius=14, fill=T.R_PRIMARY if active else T.R_SURFACE,
+            d.rounded_rectangle(box, radius=10, fill=T.R_PRIMARY if active else T.R_SURFACE,
                                 outline=T.R_PRIMARY if active else T.R_BORDER, width=2)
             label = EX_NAME[ex][0 if th else 1]
             T.text_center(d, x0 + tab_w / 2, (ty0 + ty1) / 2, label, f_xs if len(label) > 14 else f_sm,
@@ -446,17 +443,17 @@ class TutorialMode(CameraMode):
             headline = names[k]
         elif self.phase == "PRACTICE":
             pill = f"{tx['practice']}  ·  {tx['step']} {self.step + 1}/{self.n}"
-            pill_col = T.R_WARN
+            pill_col = T.R_PRIMARY
             headline = names[self.step]
         else:
             pill, pill_col, headline = tx["done"], T.R_SUCCESS, tx["great"]
         pw = T.text_size(d, pill, f_sm)[0] + 40
-        d.rounded_rectangle([lbox[0] + 24, lbox[1] + 20, lbox[0] + 24 + pw, lbox[1] + 20 + H * 0.05],
-                            radius=20, fill=pill_col)
-        T.text_center(d, lbox[0] + 24 + pw / 2, lbox[1] + 20 + H * 0.025, pill, f_sm, (255, 255, 255))
-        T.text_left(d, lbox[0] + 28, lbox[1] + 20 + H * 0.05 + H * 0.045, headline, f_big, T.R_HEADING)
+        d.rounded_rectangle([lbox[0] + 24, lbox[1] + 20, lbox[0] + 24 + pw, lbox[1] + 20 + H * 0.056],
+                            radius=8, fill=pill_col)
+        T.text_center(d, lbox[0] + 24 + pw / 2, lbox[1] + 20 + H * 0.028, pill, f_sm, (255, 255, 255))
+        T.text_left(d, lbox[0] + 28, lbox[1] + 20 + H * 0.056 + H * 0.05, headline, f_big, T.R_HEADING)
 
-        gy0 = int(lbox[1] + H * 0.15)
+        gy0 = int(lbox[1] + H * 0.17)
         gy1 = int(lbox[3] - H * 0.055)
         gs = int(min(lbox[2] - lbox[0] - 40, gy1 - gy0))
         ghost = _ghost(pose, (gs, gs), self.box)
@@ -464,8 +461,8 @@ class TutorialMode(CameraMode):
         img.paste(ghost, (gx, gy0), ghost)
         if self.phase == "DONE":
             T.check_icon(d, gx + gs - gs * 0.12, gy0 + gs * 0.12, gs * 0.1, True)
-        T.text_center(d, (lbox[0] + lbox[2]) / 2, lbox[3] - H * 0.032,
-                      tx["copy"] if self.phase != "WATCH" else EX_NAME[self.ex][0 if th else 1], f_sm, T.R_MUTED)
+        T.text_center(d, (lbox[0] + lbox[2]) / 2, lbox[3] - H * 0.034,
+                      tx["copy"] if self.phase != "WATCH" else EX_NAME[self.ex][0 if th else 1], f_xs, T.R_MUTED)
 
         # ── Right: camera + checklist ───────────────────────────
         rx0, rx1 = split + pad, W - pad
@@ -473,17 +470,20 @@ class TutorialMode(CameraMode):
         cam_box = (rx0, body_top, rx1, cam_bot)
         T.card(d, cam_box, fill=(30, 41, 56), outline=T.R_BORDER)
         cx, cy, cw, ch = T.place_camera(img, frame_bgr, (rx0 + 6, body_top + 6, rx1 - 6, cam_bot - 6), lms)
-        T.text_left(d, cx + 14, cy + 22, tx["your_hand"], f_xs, (255, 255, 255))
+        T.text_left(d, cx + 14, cy + 24, tx["your_hand"], f_xs, (255, 255, 255))
         if not lms:
             msg = tx["no_hand"]
             mw = T.text_size(d, msg, f_mid)[0]
             mx, my = (rx0 + rx1) / 2, (body_top + cam_bot) / 2
-            d.rounded_rectangle([mx - mw / 2 - 30, my - H * 0.04, mx + mw / 2 + 30, my + H * 0.04],
-                                radius=18, fill=(255, 255, 255), outline=T.R_WARN, width=3)
-            T.text_center(d, mx, my, msg, f_mid, T.R_WARN)
+            d.rounded_rectangle([mx - mw / 2 - 30, my - H * 0.045, mx + mw / 2 + 30, my + H * 0.045],
+                                radius=10, fill=(255, 255, 255), outline=T.R_WARN, width=3)
+            T.text_center(d, mx, my, msg, f_mid, T.R_WARN_TEXT)
         if now < getattr(self, "flash_until", 0):
-            d.rounded_rectangle(cam_box, radius=18, outline=T.R_SUCCESS, width=10)
-            T.text_center(d, (rx0 + rx1) / 2, body_top + H * 0.06, tx["good"], f_big, T.R_SUCCESS)
+            d.rounded_rectangle(cam_box, radius=12, outline=T.R_SUCCESS, width=8)
+            gw = T.text_size(d, tx["good"], f_big)[0] + 60
+            gcx, gcy = (rx0 + rx1) / 2, body_top + H * 0.07
+            d.rounded_rectangle([gcx - gw / 2, gcy - H * 0.04, gcx + gw / 2, gcy + H * 0.04], radius=10, fill=T.R_SUCCESS)
+            T.text_center(d, gcx, gcy, tx["good"], f_mid, (255, 255, 255))
 
         ck_box = (rx0, cam_bot + pad, rx1, body_bot)
         T.card(d, ck_box)
@@ -499,6 +499,7 @@ class TutorialMode(CameraMode):
             btns = [("rewatch", tx["rewatch"], "secondary")]
             if now - self.step_start > 20.0:
                 btns.append(("skip", tx["skip"], "primary"))
+                T.text_center(d, W / 2, fy0 - H * 0.022, tx["skip_hint"], f_xs, T.R_MUTED)
             btns.append(("next", tx["next"], "secondary"))
         else:
             btns = [("again", tx["again"], "secondary"), ("next", tx["next"], "success")]
@@ -521,9 +522,8 @@ class TutorialMode(CameraMode):
             T.text_left(d, x0 + 28, y1 - H * 0.04, tx["ready"], f_xs, T.R_MUTED)
             return
         if self.phase == "DONE":
-            T.text_center(d, (x0 + x1) / 2, (y0 + y1) / 2 - H * 0.02, tx["great"], f_mid, T.R_SUCCESS)
-            for i in range(3):
-                self._star(d, (x0 + x1) / 2 + (i - 1) * H * 0.07, (y0 + y1) / 2 + H * 0.06, H * 0.028)
+            T.check_icon(d, (x0 + x1) / 2, (y0 + y1) / 2 - H * 0.05, H * 0.04, True)
+            T.text_center(d, (x0 + x1) / 2, (y0 + y1) / 2 + H * 0.035, tx["great"], f_mid, T.R_SUCCESS)
             return
 
         # header: title + round dots
@@ -531,7 +531,7 @@ class TutorialMode(CameraMode):
         label = f"{tx['round']} {min(self.cycles + 1, self.cycles_needed)}/{self.cycles_needed}"
         lw = T.text_size(d, label, f_sm)[0]
         dots_w = self.cycles_needed * 30
-        T.text_left(d, x1 - 28 - dots_w - lw - 16, y0 + H * 0.04, label, f_sm, T.R_MUTED)
+        T.text_left(d, x1 - 28 - dots_w - lw - 16, y0 + H * 0.04, label, f_sm, T.R_TEXT)
         for i in range(self.cycles_needed):
             cx = x1 - 28 - dots_w + i * 30 + 12
             cy = y0 + H * 0.04
@@ -542,16 +542,17 @@ class TutorialMode(CameraMode):
         # items
         cols = 2 if len(items) > 2 else 1
         rows = max(1, math.ceil(len(items) / cols))
-        row_h = min(H * 0.065, (y1 - y0 - H * 0.15) / rows)
-        col_w = (x1 - x0 - 56) / cols
         top = y0 + H * 0.085
+        items_bottom = y1 - H * 0.105              # keep clear of the "hold" label and progress bar
+        row_h = min(H * 0.065, (items_bottom - top) / rows)
+        col_w = (x1 - x0 - 56) / cols
         if not items:
             T.text_left(d, x0 + 28, top + row_h / 2, tx["no_hand"], f_sm, T.R_MUTED)
         for idx, (label, ok) in enumerate(items):
             cx = x0 + 28 + (idx % cols) * col_w
             cy = top + (idx // cols) * row_h + row_h / 2
             T.check_icon(d, cx + 18, cy, min(18, row_h * 0.34), ok)
-            T.text_left(d, cx + 50, cy, label, f_sm, T.R_SUCCESS if ok else T.R_MUTED)
+            T.text_left(d, cx + 50, cy, label, f_sm, T.R_SUCCESS if ok else T.R_TEXT)
 
         # hold bar
         by = y1 - H * 0.045
@@ -566,7 +567,7 @@ class TutorialMode(CameraMode):
             col = T.R_SUCCESS if self.hold_start else T.R_PRIMARY
             d.rounded_rectangle([bx0, by, bx0 + (bx1 - bx0) * pct, by + 16], radius=8, fill=col)
         if self.hold_start:
-            T.text_left(d, bx0, by - H * 0.022, tx["hold"], f_xs, T.R_SUCCESS)
+            T.text_left(d, bx0, by - H * 0.026, tx["hold"], f_xs, T.R_SUCCESS)
 
     @staticmethod
     def _wrap(d, text, x, y, width, fnt, fill, line_h):
@@ -582,12 +583,3 @@ class TutorialMode(CameraMode):
                 line = test
         if line:
             T.text_left(d, x, y, line, fnt, fill)
-
-    @staticmethod
-    def _star(d, cx, cy, r):
-        pts = []
-        for i in range(10):
-            a = -math.pi / 2 + i * math.pi / 5
-            rr = r if i % 2 == 0 else r * 0.45
-            pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
-        d.polygon(pts, fill=(255, 193, 7), outline=(214, 150, 0))

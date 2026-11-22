@@ -21,9 +21,11 @@ SURFACE_ALT = "#e3edf7"   # hover / secondary buttons
 BORDER = "#cfdbe8"
 PRIMARY = "#0a66b2"       # hospital blue
 PRIMARY_DARK = "#084f8a"
-SUCCESS = "#0f9d6e"       # green (correct / done)
-WARN = "#d98200"
-DANGER = "#d64545"
+SUCCESS = "#0b7d58"       # green (correct / done) - passes 4.5:1 on white
+WARN = "#d98200"          # amber for borders/fills only (use WARN_TEXT for text)
+WARN_TEXT = "#8f5200"     # amber text, 6:1 on white
+DANGER = "#d64545"        # red for borders/fills only (use DANGER_TEXT for text)
+DANGER_TEXT = "#b02a2a"   # red text, 6:1 on white
 TEXT = "#1b2b3c"
 MUTED = "#5a6b7e"
 HEADING = "#0b2e4f"
@@ -38,6 +40,7 @@ def rgb(hex_color: str) -> tuple[int, int, int]:
 R_BG, R_SURFACE, R_SURFACE_ALT, R_BORDER = rgb(BG), rgb(SURFACE), rgb(SURFACE_ALT), rgb(BORDER)
 R_PRIMARY, R_PRIMARY_DARK = rgb(PRIMARY), rgb(PRIMARY_DARK)
 R_SUCCESS, R_WARN, R_DANGER = rgb(SUCCESS), rgb(WARN), rgb(DANGER)
+R_WARN_TEXT, R_DANGER_TEXT = rgb(WARN_TEXT), rgb(DANGER_TEXT)
 R_TEXT, R_MUTED, R_HEADING = rgb(TEXT), rgb(MUTED), rgb(HEADING)
 
 # Finger colours (index, middle, ring, pinky) - distinct and colour-blind friendly
@@ -55,8 +58,12 @@ _REG = ["LeelawUI.ttf", "leelawad.ttf", "tahoma.ttf",
 _font_cache: dict[tuple, object] = {}
 
 
+MIN_FONT_PX = 20          # elderly-friendly floor: no text on screen is smaller than this
+
+
 def font(size: int, bold: bool = True):
     from PIL import ImageFont
+    size = max(MIN_FONT_PX, int(round(size)))
     key = (int(size), bold)
     if key in _font_cache:
         return _font_cache[key]
@@ -92,20 +99,20 @@ def text_left(draw, x, cy, text, fnt, fill):
     return w
 
 
-def card(draw, box, fill=R_SURFACE, outline=R_BORDER, radius=18, width=2):
+def card(draw, box, fill=R_SURFACE, outline=R_BORDER, radius=12, width=2):
     draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
 def button(draw, box, label, fnt, style="primary"):
-    """Draws a big rounded button. Styles: primary | secondary | danger | success."""
+    """Draws a big, calm rounded-rectangle button. Styles: primary | secondary | danger | success."""
     fills = {
         "primary": (R_PRIMARY, R_PRIMARY_DARK, (255, 255, 255)),
         "secondary": (R_SURFACE, R_BORDER, R_HEADING),
-        "danger": ((255, 255, 255), R_DANGER, R_DANGER),
-        "success": (R_SUCCESS, (10, 120, 84), (255, 255, 255)),
+        "danger": ((255, 255, 255), R_DANGER, R_DANGER_TEXT),
+        "success": (R_SUCCESS, (8, 94, 66), (255, 255, 255)),
     }
     fill, outline, fg = fills.get(style, fills["primary"])
-    draw.rounded_rectangle(box, radius=int((box[3] - box[1]) / 2.6), fill=fill, outline=outline, width=3)
+    draw.rounded_rectangle(box, radius=10, fill=fill, outline=outline, width=2)
     text_center(draw, (box[0] + box[2]) / 2, (box[1] + box[3]) / 2, label, fnt, fg)
 
 
@@ -127,6 +134,43 @@ def note_icon(draw, cx, cy, r, color=(255, 255, 255)):
               fill=color, width=max(2, int(r * 0.13)))
     draw.polygon([(cx + hx * 0.1, cy - r * 0.62), (cx + r * 0.62, cy - r * 0.34), (cx + r * 0.62, cy - r * 0.05),
                   (cx + hx * 0.1, cy - r * 0.32)], fill=color)
+
+
+def draw_header(d, W, H, title, back_label, user="", icon="cross"):
+    """White title bar with the app badge, the signed-in user and a neutral back button.
+    Returns (header_height, back_button_box)."""
+    hh = int(H * 0.095)
+    pad = int(H * 0.022)
+    d.rectangle([0, 0, W, hh], fill=R_SURFACE)
+    d.rectangle([0, hh - 3, W, hh], fill=R_PRIMARY)
+    bs = hh * 0.58
+    bx0, by0 = pad, (hh - 3 - bs) / 2
+    d.rounded_rectangle([bx0, by0, bx0 + bs, by0 + bs], radius=8, fill=R_PRIMARY)
+    cx, cy = bx0 + bs / 2, by0 + bs / 2
+    if icon == "note":
+        note_icon(d, cx, cy, bs * 0.36)
+    else:
+        arm, thick = bs * 0.30, bs * 0.11
+        d.rectangle([cx - thick, cy - arm, cx + thick, cy + arm], fill=(255, 255, 255))
+        d.rectangle([cx - arm, cy - thick, cx + arm, cy + thick], fill=(255, 255, 255))
+    f_title = font(H * 0.036)
+    text_left(d, bx0 + bs + pad, (hh - 3) / 2, title, f_title, R_HEADING)
+
+    bw = int(W * 0.15)
+    back = (W - pad - bw, (hh - 3) * 0.16, W - pad, (hh - 3) * 0.84)
+    button(d, back, back_label, font(H * 0.028), "secondary")
+    my = (back[1] + back[3]) / 2          # chevron drawn with shapes (font glyph not guaranteed)
+    d.line([(back[0] + 20, my - 9), (back[0] + 11, my), (back[0] + 20, my + 9)], fill=R_PRIMARY, width=4)
+
+    if user:
+        f_user = font(H * 0.026, False)
+        label = user
+        uw = text_size(d, label, f_user)[0] + 44
+        ux1 = back[0] - pad
+        chip = (ux1 - uw, (hh - 3) * 0.22, ux1, (hh - 3) * 0.78)
+        d.rounded_rectangle(chip, radius=10, fill=R_SURFACE_ALT)
+        text_center(d, (chip[0] + chip[2]) / 2, (chip[1] + chip[3]) / 2, label, f_user, R_HEADING)
+    return hh, back
 
 
 def inside(box, x, y) -> bool:

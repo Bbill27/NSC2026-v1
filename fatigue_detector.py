@@ -54,7 +54,7 @@ class FatigueDetector:
         if self.is_locked:
             if now < self.lock_end_time:
                 remain = int(self.lock_end_time - now)
-                msg = f"Take a break ({remain}s)" if current_lang == "EN" else f"พักกล้ามเนื้อ ({remain} วิ)"
+                msg = f"Please rest your hand ({remain}s)" if current_lang == "EN" else f"กรุณาพักกล้ามเนื้อ ({remain} วินาที)"
                 return True, msg, "warn"
             else:
                 # Rest period over, release the lock
@@ -89,7 +89,7 @@ class FatigueDetector:
         if is_active_state:
             # MILD FATIGUE: Just a gentle UI warning
             if 12.0 < time_in_state <= 20.0:
-                msg = "You seem tired. Do your best!" if current_lang == "EN" else "พยายามอีกนิด ค่อยๆทำ"
+                msg = "You may be tired. Please slow down." if current_lang == "EN" else "ท่านอาจเริ่มเหนื่อยล้า กรุณาทำช้าๆ"
                 return False, msg, "warn"
 
             # HIGH FATIGUE: Hard Stop / Safety Lockout
@@ -105,6 +105,6 @@ class FatigueDetector:
                 except Exception:
                     pass
 
-                return True, "Fatigue Detected!", "warn"
+                return True, ("Fatigue detected. Please rest." if current_lang == "EN" else "ตรวจพบอาการล้า กรุณาพักสักครู่"), "warn"
 
         return False, "", "neutral"
